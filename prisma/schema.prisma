@@ -19,37 +19,66 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   sessions           Session[]
+  adminLogs          AdminLog[]          // Admin logs (for admins only)
 }
 
 model Session {
-  id        String   @id @default(cuid()) // Added default ID
-  userId    String
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  userId      String
+  expiresAt   DateTime
+  ipAddress   String?  // For tracking IP address
+  deviceInfo  String?  // For tracking device details (optional)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Order {
-  id        Int      @id @default(autoincrement())
-  userId    String // Changed from Int to String
-  user      User     @relation(fields: [userId], references: [id])
-  amount    Float
-  direction String // "up" or "down"
-  outcome   String? // "win", "loss", or null if pending
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  symbolId    Int      // Relation to the Symbol being traded
+  symbol      Symbol   @relation(fields: [symbolId], references: [id])
+  amount      Float
+  direction   String   // "up" or "down"
+  entryPrice  Float    // Price when the order was placed
+  exitPrice   Float?   // Price at the expiration of the order
+  outcome     String?  // "win", "loss", or null if pending
+  expiresAt   DateTime // Time when the binary option expires
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model WalletTransaction {
-  id        Int      @id @default(autoincrement())
-  userId    String // Changed from Int to String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String // "deposit" or "withdrawal"
-  amount    Float
-  status    String // "pending", "approved", "rejected"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // "deposit" or "withdrawal"
+  amount      Float
+  status      String   // "pending", "approved", "rejected"
+  reference   String?  // Optional transaction reference ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Symbol {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // Symbol name (e.g., BTC/USD, EUR/USD)
+  currentPrice Float   // Current market price
+  payout      Float    @default(80) // Payout percentage for winning trades
+  enabled     Boolean  @default(true) // Enable or disable trading for this symbol
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]  // Relation to orders placed on this symbol
+}
+
+model AdminLog {
+  id          Int      @id @default(autoincrement())
+  adminId     String
+  admin       User     @relation(fields: [adminId], references: [id])
+  action      String   // Description of the admin action
+  details     String?  // Additional details (e.g., JSON payload)
+  createdAt   DateTime @default(now())
 }
 
 enum Role {

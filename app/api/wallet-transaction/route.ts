@@ -1,66 +1,60 @@
-import { validateRequest } from "@/lib/auth";
-import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { validateRequest } from "@/lib/auth"; // Import your auth library
 
-const transactionSchema = z.object({
-  type: z.enum(["deposit", "withdrawal"]),
-  amount: z.number().positive(),
-});
-
-export async function POST(request: NextRequest) {
-  const { user } = await validateRequest();
-
-  if (!user) {
+// Deposit or Withdraw Funds
+export async function POST(req: Request) {
+  const { user, session } = await validateRequest();
+  if (!session || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { type, amount } = await req.json();
+
+  if (!["deposit", "withdrawal"].includes(type)) {
+    return NextResponse.json(
+      { error: "Invalid transaction type" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const body = await request.json();
-    const { type, amount } = transactionSchema.parse(body);
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email as string },
-    });
-
-    if (!dbUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    if (type === "withdrawal" && dbUser.balance < amount) {
-      return NextResponse.json(
-        { error: "Insufficient balance" },
-        { status: 400 }
-      );
-    }
-
     const transaction = await prisma.walletTransaction.create({
       data: {
-        userId: dbUser.id,
+        userId: user.id,
         type,
         amount,
         status: "pending",
       },
     });
 
-    return NextResponse.json(
-      {
-        transaction,
-        message: `${type} request submitted for approval`,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      }
-    );
+    return NextResponse.json(transaction, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
-    }
-    console.error("Error processing wallet transaction:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to process transaction" },
+      { status: 500 }
+    );
+  }
+}
+
+// Get Wallet Transactions for the Authenticated User
+export async function GET() {
+  const { user, session } = await validateRequest();
+  if (!session || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const transactions = await prisma.walletTransaction.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(transactions);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch transactions" },
       { status: 500 }
     );
   }
