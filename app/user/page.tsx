@@ -6,7 +6,7 @@ export default async function UserPage() {
   return (
     <div className="flex h-screen">
       {/* Main Dashboard */}
-      <main className="flex-1 bg-gray-50 p-2 overflow-y-auto">
+      <main className="flex-1  p-2 overflow-y-auto">
         {/* Trading Dashboard */}
         <div className="grid grid-cols-10 gap-6 relative">
           {/* Live Price and Chart */}
