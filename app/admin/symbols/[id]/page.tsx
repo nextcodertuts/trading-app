@@ -6,10 +6,11 @@ import SymbolForm from "../SymbolForm";
 export default async function EditSymbol({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const symbol = await prisma.symbol.findUnique({
-    where: { id: Number.parseInt(params.id) },
+    where: { id: Number.parseInt(id) },
   });
 
   if (!symbol) {
