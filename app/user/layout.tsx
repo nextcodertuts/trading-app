@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
-
-import SessionProvider from "./SessionProvider";
 import { validateRequest } from "@/lib/auth";
+import SessionProvider from "./SessionProvider";
 
 export default async function Layout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await validateRequest();
+  const { user, session } = await validateRequest();
 
-  if (!session.user) redirect("/auth/login");
+  if (!user || !session) {
+    redirect("/auth/login");
+  }
 
   return (
-    <SessionProvider value={session}>
+    <SessionProvider value={{ user, session }}>
       <div>{children}</div>
     </SessionProvider>
   );

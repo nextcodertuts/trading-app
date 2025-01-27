@@ -1,23 +1,28 @@
+import { Suspense } from "react";
 import { BinaryTradeHistory } from "@/components/BinaryTradeHistory";
-import { LivePriceDisplay } from "@/components/user-dashboard/LivePriceDisplay";
+import { TradingViewChart } from "@/components/TradingViewChart";
 import { TradingActionPanel } from "@/components/user-dashboard/TradingActionPanel";
 
-export default async function UserPage() {
+export default function UserPage() {
   return (
     <div className="flex h-screen">
-      {/* Main Dashboard */}
-      <main className="flex-1  p-2 overflow-y-auto">
-        {/* Trading Dashboard */}
+      <main className="flex-1 p-2 overflow-y-auto">
         <div className="grid grid-cols-10 gap-6 relative">
-          {/* Live Price and Chart */}
           <section className="col-span-8">
-            <LivePriceDisplay />
+            <div className="space-y-4 h-full">
+              <Suspense fallback={<div>Loading chart...</div>}>
+                <TradingViewChart symbol="BTCUSDT" interval="1" height={600} />
+              </Suspense>
+            </div>
           </section>
 
-          {/* Trading Action Panel */}
           <section className="col-span-2 border space-y-4 min-h-[95vh] sticky rounded-lg p-4 bg-primary-foreground">
-            <TradingActionPanel />
-            <BinaryTradeHistory />
+            <Suspense fallback={<div>Loading trading panel...</div>}>
+              <TradingActionPanel />
+            </Suspense>
+            <Suspense fallback={<div>Loading history...</div>}>
+              <BinaryTradeHistory />
+            </Suspense>
           </section>
         </div>
       </main>
