@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ClientSymbolForm() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -18,6 +25,9 @@ export default function ClientSymbolForm() {
     currentPrice: 0,
     payout: 80,
     enabled: true,
+    trend: "",
+    volatility: 1.0,
+    status: "active",
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,6 +54,9 @@ export default function ClientSymbolForm() {
           currentPrice: 0,
           payout: 80,
           enabled: true,
+          trend: "",
+          volatility: 1.0,
+          status: "active",
         });
         setIsExpanded(false);
         router.refresh();
@@ -112,6 +125,47 @@ export default function ClientSymbolForm() {
               payout: Number.parseFloat(e.target.value),
             })
           }
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="trend">Trend</Label>
+        <Select
+          value={formData.trend}
+          onValueChange={(value) => setFormData({ ...formData, trend: value })}
+        >
+          <SelectTrigger id="trend">
+            <SelectValue placeholder="Select trend" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="up">Up</SelectItem>
+            <SelectItem value="down">Down</SelectItem>
+            <SelectItem value="volatile">Volatile</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="volatility">Volatility</Label>
+        <Input
+          id="volatility"
+          type="number"
+          step="0.1"
+          value={formData.volatility}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              volatility: Number.parseFloat(e.target.value),
+            })
+          }
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="status">Status</Label>
+        <Input
+          id="status"
+          value={formData.status}
+          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
           required
         />
       </div>

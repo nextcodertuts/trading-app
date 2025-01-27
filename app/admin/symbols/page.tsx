@@ -49,6 +49,9 @@ export default async function Symbols({
             <TableHead>Current Price</TableHead>
             <TableHead>Payout</TableHead>
             <TableHead>Enabled</TableHead>
+            <TableHead>Trend</TableHead>
+            <TableHead>Volatility</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -59,6 +62,9 @@ export default async function Symbols({
               <TableCell>${symbol.currentPrice.toFixed(2)}</TableCell>
               <TableCell>{symbol.payout}%</TableCell>
               <TableCell>{symbol.enabled ? "Yes" : "No"}</TableCell>
+              <TableCell>{symbol.trend || "N/A"}</TableCell>
+              <TableCell>{symbol.volatility.toFixed(2)}</TableCell>
+              <TableCell>{symbol.status}</TableCell>
               <TableCell>
                 <Button asChild className="mr-2">
                   <Link href={`/admin/symbols/${symbol.id}`}>Edit</Link>

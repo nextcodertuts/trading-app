@@ -10,6 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SymbolForm({ symbol = null, onSuccess = () => {} }) {
   const { toast } = useToast();
@@ -18,6 +25,9 @@ export default function SymbolForm({ symbol = null, onSuccess = () => {} }) {
     currentPrice: symbol?.currentPrice || 0,
     payout: symbol?.payout || 80,
     enabled: symbol?.enabled ?? true,
+    trend: symbol?.trend || "",
+    volatility: symbol?.volatility || 1.0,
+    status: symbol?.status || "active",
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,21 +45,28 @@ export default function SymbolForm({ symbol = null, onSuccess = () => {} }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          id: symbol?.id, // Include the id for update requests
+        }),
       });
 
       if (response.ok) {
+        const result = await response.json();
         toast({
           title: "Success",
           description: `Symbol ${symbol ? "updated" : "created"} successfully.`,
         });
-        onSuccess();
+        onSuccess(result.symbol);
         if (!symbol) {
           setFormData({
             name: "",
             currentPrice: 0,
             payout: 80,
             enabled: true,
+            trend: "",
+            volatility: 1.0,
+            status: "active",
           });
         }
       } else {
@@ -108,6 +125,47 @@ export default function SymbolForm({ symbol = null, onSuccess = () => {} }) {
               payout: Number.parseFloat(e.target.value),
             })
           }
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="trend">Trend</Label>
+        <Select
+          value={formData.trend}
+          onValueChange={(value) => setFormData({ ...formData, trend: value })}
+        >
+          <SelectTrigger id="trend">
+            <SelectValue placeholder="Select trend" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="up">Up</SelectItem>
+            <SelectItem value="down">Down</SelectItem>
+            <SelectItem value="volatile">Volatile</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="volatility">Volatility</Label>
+        <Input
+          id="volatility"
+          type="number"
+          step="0.1"
+          value={formData.volatility}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              volatility: Number.parseFloat(e.target.value),
+            })
+          }
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="status">Status</Label>
+        <Input
+          id="status"
+          value={formData.status}
+          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
           required
         />
       </div>

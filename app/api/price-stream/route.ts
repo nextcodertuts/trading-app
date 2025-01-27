@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+import { NextResponse } from "next/server";
 import { WebSocketServer } from "ws";
-import { NextApiRequest, NextApiResponse } from "next";
 import type { Server } from "http";
 
 let wsServer: WebSocketServer | null = null;
 
-// Function to fetch Binance WebSocket prices
 function createBinanceWebSocket(
   symbol: string,
   callback: (price: number) => void
@@ -16,7 +14,7 @@ function createBinanceWebSocket(
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data && data.p) {
-      callback(parseFloat(data.p)); // Binance sends price as "p"
+      callback(Number.parseFloat(data.p)); // Binance sends price as "p"
     }
   };
   ws.onerror = (err) => console.error("Binance WebSocket error:", err);
@@ -24,7 +22,6 @@ function createBinanceWebSocket(
   return ws;
 }
 
-// Function to manipulate the price
 function manipulatePrice(
   price: number,
   trend: string,
@@ -39,14 +36,24 @@ function manipulatePrice(
   return Math.max(manipulatedPrice, 0); // Ensure price is never negative
 }
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export async function GET(req: Request) {
+  // Add CORS headers
+  const headers = new Headers({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  });
+
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, { status: 204, headers });
+  }
+
   if (!wsServer) {
     wsServer = new WebSocketServer({ noServer: true });
 
     wsServer.on("connection", (socket) => {
       console.log("Client connected to WebSocket.");
 
-      // Example: Symbol, trend, and volatility could come from an admin-controlled configuration
       const symbol = "BTCUSDT"; // Default to BTC/USDT
       const trend = "up"; // Admin-defined trend
       const volatility = 1.5; // Admin-defined volatility
@@ -65,22 +72,15 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     console.log("WebSocket server initialized.");
   }
 
-  res.end(); // This API endpoint just sets up the WebSocket server
+  return new NextResponse("WebSocket server running", { status: 200, headers });
 }
 
-export const config = {
-  api: {
-    bodyParser: false, // Disable body parsing for WebSocket routes
-  },
-};
-
-// Attach the WebSocket server to Next.js HTTP server
-export const websocketHandler = (server: Server) => {
+export function websocketHandler(server: Server) {
   if (wsServer) {
-    wsServer.handleUpgrade = (req, socket, head) => {
-      wsServer?.handleUpgrade(req, socket, head, (ws) => {
-        wsServer?.emit("connection", ws, req);
+    server.on("upgrade", (request, socket, head) => {
+      wsServer?.handleUpgrade(request, socket, head, (ws) => {
+        wsServer?.emit("connection", ws, request);
       });
-    };
+    });
   }
-};
+}

@@ -46,53 +46,24 @@ export async function POST(req: Request) {
   if (!admin) return;
 
   try {
-    const { name, currentPrice, payout, enabled } = await req.json();
+    const { name, currentPrice, payout, enabled, trend, volatility, status } =
+      await req.json();
+
+    // Validate trend
+    if (trend && !["up", "down", "volatile"].includes(trend)) {
+      return NextResponse.json(
+        { error: "Invalid trend value" },
+        { status: 400 }
+      );
+    }
+
     const newSymbol = await prisma.symbol.create({
-      data: { name, currentPrice, payout, enabled },
+      data: { name, currentPrice, payout, enabled, trend, volatility, status },
     });
     return NextResponse.json({ symbol: newSymbol });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to create symbol" },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT: Update a symbol
-export async function PUT(req: Request) {
-  const admin = await isAdmin();
-  if (!admin) return;
-
-  try {
-    const { id, name, currentPrice, payout, enabled } = await req.json();
-    const updatedSymbol = await prisma.symbol.update({
-      where: { id: Number.parseInt(id) },
-      data: { name, currentPrice, payout, enabled },
-    });
-    return NextResponse.json({ symbol: updatedSymbol });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to update symbol" },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE: Delete a symbol
-export async function DELETE(req: Request) {
-  const admin = await isAdmin();
-  if (!admin) return;
-
-  try {
-    const { id } = await req.json();
-    await prisma.symbol.delete({
-      where: { id: Number.parseInt(id) },
-    });
-    return NextResponse.json({ message: "Symbol deleted successfully" });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete symbol" },
       { status: 500 }
     );
   }

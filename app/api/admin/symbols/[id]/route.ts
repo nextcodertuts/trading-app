@@ -12,36 +12,37 @@ async function isAdmin() {
   return user;
 }
 
-// GET: Fetch all symbols with pagination
-export async function GET(req: Request) {
+// GET: Fetch a specific symbol
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const admin = await isAdmin();
   if (!admin) return;
 
-  const url = new URL(req.url);
-  const page = Number.parseInt(url.searchParams.get("page") || "1");
-  const limit = Number.parseInt(url.searchParams.get("limit") || "10");
-  const skip = (page - 1) * limit;
-
   try {
-    const [symbols, totalCount] = await Promise.all([
-      prisma.symbol.findMany({
-        skip,
-        take: limit,
-      }),
-      prisma.symbol.count(),
-    ]);
-
-    return NextResponse.json({ symbols, totalCount });
+    const symbol = await prisma.symbol.findUnique({
+      where: { id: Number.parseInt(id) },
+    });
+    if (!symbol) {
+      return NextResponse.json({ error: "Symbol not found" }, { status: 404 });
+    }
+    return NextResponse.json({ symbol });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch symbols" },
+      { error: "Failed to fetch symbol" },
       { status: 500 }
     );
   }
 }
 
-// POST: Create a new symbol
-export async function POST(req: Request) {
+// PUT: Update a symbol
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const admin = await isAdmin();
   if (!admin) return;
 
@@ -57,31 +58,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const newSymbol = await prisma.symbol.create({
-      data: { name, currentPrice, payout, enabled, trend, volatility, status },
-    });
-    return NextResponse.json({ symbol: newSymbol });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create symbol" },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT: Update a symbol
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const admin = await isAdmin();
-  if (!admin) return;
-
-  try {
-    const { name, currentPrice, payout, enabled, trend, volatility, status } =
-      await req.json();
-    const id = params.id;
-
     const updatedSymbol = await prisma.symbol.update({
       where: { id: Number.parseInt(id) },
       data: { name, currentPrice, payout, enabled, trend, volatility, status },
@@ -96,12 +72,15 @@ export async function PUT(
 }
 
 // DELETE: Delete a symbol
-export async function DELETE(req: Request) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const admin = await isAdmin();
   if (!admin) return;
 
   try {
-    const { id } = await req.json();
     await prisma.symbol.delete({
       where: { id: Number.parseInt(id) },
     });
