@@ -67,10 +67,14 @@ model Symbol {
   currentPrice Float   // Current market price
   payout      Float    @default(80) // Payout percentage for winning trades
   enabled     Boolean  @default(true) // Enable or disable trading for this symbol
+  trend       String?  // Current trend (e.g., "up", "down", "volatile")
+  volatility  Float    @default(1.0) // Volatility factor to simulate price changes
+  status      String   @default("active") // Symbol status: active, paused, or inactive
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orders      Order[]  // Relation to orders placed on this symbol
 }
+
 
 model AdminLog {
   id          Int      @id @default(autoincrement())
