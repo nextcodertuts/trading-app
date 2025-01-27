@@ -11,7 +11,7 @@ export default function UserPage() {
           <section className="col-span-8">
             <div className="space-y-4 h-full">
               <Suspense fallback={<div>Loading chart...</div>}>
-                <TradingViewChart symbol="BTCUSDT" interval="1" height={600} />
+                <TradingViewChart symbol="ETHUSDT" interval="1" height={600} />
               </Suspense>
             </div>
           </section>

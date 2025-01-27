@@ -1,68 +1,42 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useTrading } from "@/lib/trading-context";
 import { ArrowUp, ArrowDown } from "lucide-react";
-
-interface PriceData {
-  basePrice: number;
-  manipulatedPrice: number;
-  timestamp: string;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function LivePriceDisplay() {
-  const [priceData, setPriceData] = useState<PriceData | null>(null);
-  const [previousPrice, setPreviousPrice] = useState<number | null>(null);
+  const { selectedSymbol, currentPrice, priceDirection } = useTrading();
 
-  useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const response = await fetch(
-          "/api/market-data?symbolId=1&binanceSymbol=BTCUSDT"
-        );
-        if (!response.ok) throw new Error("Failed to fetch price");
-        const data = await response.json();
-
-        setPreviousPrice(priceData?.manipulatedPrice || null);
-        setPriceData(data);
-      } catch (error) {
-        console.error("Error fetching price:", error);
-      }
-    };
-
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const getPriceChangeIndicator = () => {
-    if (!previousPrice || !priceData) return null;
-
-    const isUp = priceData.manipulatedPrice > previousPrice;
-    return isUp ? (
-      <ArrowUp className="w-6 h-6 text-green-500" />
-    ) : (
-      <ArrowDown className="w-6 h-6 text-red-500" />
-    );
-  };
-
-  if (!priceData) return <div>Loading...</div>;
+  if (!selectedSymbol || !currentPrice) {
+    return <div>Select a symbol to view price data...</div>;
+  }
 
   return (
-    <div className="bg-card p-6 rounded-lg shadow-lg">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">BTC/USDT</h2>
-        {getPriceChangeIndicator()}
-      </div>
-
-      <div className="mt-4">
-        <div className="text-3xl font-bold text-primary">
-          ${priceData.manipulatedPrice.toFixed(2)}
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold">
+          {selectedSymbol.name} Market Price
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div className="text-2xl font-bold">${currentPrice.toFixed(2)}</div>
+          <div
+            className={`flex items-center ${
+              priceDirection === "up" ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {priceDirection === "up" ? (
+              <ArrowUp className="w-4 h-4" />
+            ) : (
+              <ArrowDown className="w-4 h-4" />
+            )}
+          </div>
         </div>
         <div className="text-sm text-muted-foreground mt-2">
-          Last updated: {new Date(priceData.timestamp).toLocaleTimeString()}
+          Last updated: {new Date().toLocaleTimeString()}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
