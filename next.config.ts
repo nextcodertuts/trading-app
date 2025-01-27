@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import type { NextConfig } from "next";
@@ -20,6 +21,10 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  compiler: {
+    // Enables the styled-components SWC transform
+    styledComponents: true,
+  },
 };
 
 // WebSocket server setup (unchanged)
@@ -30,10 +35,22 @@ if (process.env.NODE_ENV !== "production") {
 
   app.prepare().then(() => {
     const wsPort = 3001;
-    createServer((req, res) => {
+    const server = createServer((req, res) => {
       const parsedUrl = parse(req.url!, true);
       handle(req, res, parsedUrl);
-    }).listen(wsPort, (err?: Error) => {
+    });
+
+    server.on("error", (err: Error) => {
+      if ((err as any).code === "EADDRINUSE") {
+        console.error(
+          `Port ${wsPort} is already in use. Please check if another process is using it or try again later.`
+        );
+      } else {
+        console.error("Error starting WebSocket server:", err);
+      }
+    });
+
+    server.listen(wsPort, (err?: Error) => {
       if (err) throw err;
       console.log(`> WebSocket server ready on http://localhost:${wsPort}`);
     });
