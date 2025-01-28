@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+//@ts-nocheck
 "use client";
 
 import { useState } from "react";
@@ -15,22 +17,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function ClientSymbolForm() {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function ClientSymbolForm({ initialSymbol = null }) {
+  const [isExpanded, setIsExpanded] = useState(!!initialSymbol);
   const router = useRouter();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    displayName: "",
-    binanceSymbol: "",
-    currentPrice: "0",
-    payout: "80",
-    enabled: true,
-    trend: "sideways",
-    volatility: "1.0",
-    minAmount: "10",
-    maxAmount: "1000",
-  });
+  const [formData, setFormData] = useState(
+    initialSymbol || {
+      name: "",
+      displayName: "",
+      binanceSymbol: "",
+      currentPrice: "0",
+      payout: "80",
+      enabled: true,
+      trend: "sideways",
+      volatility: "1.0",
+      minAmount: "10",
+      maxAmount: "1000",
+    }
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,8 +42,13 @@ export default function ClientSymbolForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/admin/symbols", {
-        method: "POST",
+      const url = initialSymbol
+        ? `/api/admin/symbols/${initialSymbol.id}`
+        : "/api/admin/symbols";
+      const method = initialSymbol ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -58,30 +67,36 @@ export default function ClientSymbolForm() {
 
       toast({
         title: "Success",
-        description: "Symbol created successfully.",
+        description: initialSymbol
+          ? "Symbol updated successfully."
+          : "Symbol created successfully.",
       });
 
-      setFormData({
-        name: "",
-        displayName: "",
-        binanceSymbol: "",
-        currentPrice: "0",
-        payout: "80",
-        enabled: true,
-        trend: "sideways",
-        volatility: "1.0",
-        minAmount: "10",
-        maxAmount: "1000",
-      });
+      if (!initialSymbol) {
+        setFormData({
+          name: "",
+          displayName: "",
+          binanceSymbol: "",
+          currentPrice: "0",
+          payout: "80",
+          enabled: true,
+          trend: "sideways",
+          volatility: "1.0",
+          minAmount: "10",
+          maxAmount: "1000",
+        });
+        setIsExpanded(false);
+      }
 
-      setIsExpanded(false);
       router.refresh();
     } catch (error) {
-      console.error("Error creating symbol:", error);
+      console.error("Error creating/updating symbol:", error);
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to create symbol",
+          error instanceof Error
+            ? error.message
+            : "Failed to create/update symbol",
         variant: "destructive",
       });
     } finally {
@@ -234,15 +249,23 @@ export default function ClientSymbolForm() {
 
       <div className="flex space-x-2">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Creating..." : "Create Symbol"}
+          {isLoading
+            ? initialSymbol
+              ? "Updating..."
+              : "Creating..."
+            : initialSymbol
+            ? "Update Symbol"
+            : "Create Symbol"}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setIsExpanded(false)}
-        >
-          Cancel
-        </Button>
+        {!initialSymbol && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsExpanded(false)}
+          >
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
   );

@@ -47,11 +47,21 @@ export async function PUT(
   if (!admin) return;
 
   try {
-    const { name, currentPrice, payout, enabled, trend, volatility, status } =
-      await req.json();
+    const {
+      name,
+      displayName,
+      binanceSymbol,
+      currentPrice,
+      payout,
+      enabled,
+      trend,
+      volatility,
+      minAmount,
+      maxAmount,
+    } = await req.json();
 
     // Validate trend
-    if (trend && !["up", "down", "volatile"].includes(trend)) {
+    if (trend && !["up", "down", "sideways"].includes(trend)) {
       return NextResponse.json(
         { error: "Invalid trend value" },
         { status: 400 }
@@ -60,7 +70,18 @@ export async function PUT(
 
     const updatedSymbol = await prisma.symbol.update({
       where: { id: Number.parseInt(id) },
-      data: { name, currentPrice, payout, enabled, trend, volatility, status },
+      data: {
+        name,
+        displayName,
+        binanceSymbol,
+        currentPrice: Number.parseFloat(currentPrice),
+        payout: Number.parseFloat(payout),
+        enabled,
+        trend,
+        volatility: Number.parseFloat(volatility),
+        minAmount: Number.parseFloat(minAmount),
+        maxAmount: Number.parseFloat(maxAmount),
+      },
     });
     return NextResponse.json({ symbol: updatedSymbol });
   } catch (error) {

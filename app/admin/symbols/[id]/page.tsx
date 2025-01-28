@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import prisma from "@/lib/prisma";
-import SymbolForm from "../SymbolForm";
+import ClientSymbolForm from "../ClientSymbolForm";
 
 export default async function EditSymbol({
   params,
@@ -20,7 +20,7 @@ export default async function EditSymbol({
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Edit Symbol: {symbol.name}</h1>
-      <SymbolForm symbol={symbol} />
+      <ClientSymbolForm initialSymbol={symbol} />
     </div>
   );
 }

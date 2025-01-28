@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import type React from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 interface Symbol {
   id: number;
@@ -8,6 +9,7 @@ interface Symbol {
   currentPrice: number;
   payout: number;
   enabled: boolean;
+  binanceSymbol: string;
 }
 
 interface TradingContextType {
@@ -52,7 +54,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const fetchPrice = async () => {
       try {
         const response = await fetch(
-          `/api/market-data?symbolId=${selectedSymbol.id}&binanceSymbol=${selectedSymbol.name}`
+          `/api/market-data?symbolId=${selectedSymbol.id}&binanceSymbol=${selectedSymbol.binanceSymbol}`
         );
         if (!response.ok) throw new Error("Failed to fetch price");
         const data = await response.json();
@@ -95,4 +97,22 @@ export function useTrading() {
     throw new Error("useTrading must be used within a TradingProvider");
   }
   return context;
+}
+
+export default function MyComponent() {
+  const { selectedSymbol, currentPrice, priceDirection, userBalance } =
+    useTrading();
+
+  return (
+    <div>
+      {selectedSymbol && (
+        <div>
+          <p>Symbol: {selectedSymbol.name}</p>
+          <p>Current Price: {currentPrice}</p>
+          <p>Price Direction: {priceDirection}</p>
+          <p>User Balance: {userBalance}</p>
+        </div>
+      )}
+    </div>
+  );
 }

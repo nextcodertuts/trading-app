@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -17,12 +19,10 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
-  isCollapsed: boolean;
-  onToggle: () => void;
-}
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-export function Sidebar({ className, isCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({ className }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
 
   const links = [
@@ -46,7 +46,7 @@ export function Sidebar({ className, isCollapsed, onToggle }: SidebarProps) {
         <Button
           variant="outline"
           size="icon"
-          onClick={onToggle}
+          onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-4 top-4 z-20"
         >
           {isCollapsed ? (
@@ -90,7 +90,7 @@ export function Sidebar({ className, isCollapsed, onToggle }: SidebarProps) {
             logout();
           }}
         >
-          <LogOut className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-2")} />
+          <LogOut className={cn("h-5 w-4", isCollapsed ? "mx-auto" : "mr-2")} />
           {!isCollapsed && <span>Logout</span>}
         </Button>
       </div>

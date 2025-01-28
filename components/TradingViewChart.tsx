@@ -37,7 +37,7 @@ export function TradingViewChart({
       if (typeof window.TradingView !== "undefined" && container.current) {
         new window.TradingView.widget({
           container_id: container.current.id,
-          symbol: `BINANCE:${selectedSymbol.name}`,
+          symbol: `BINANCE:${selectedSymbol.binanceSymbol}`,
           interval: interval,
           timezone: "Etc/UTC",
           theme: theme === "dark" ? "dark" : "light",

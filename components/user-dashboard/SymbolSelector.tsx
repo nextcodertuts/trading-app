@@ -11,6 +11,7 @@ interface Symbol {
   currentPrice: number;
   payout: number;
   enabled: boolean;
+  binanceSymbol: string;
 }
 
 export function SymbolSelector() {
@@ -39,7 +40,7 @@ export function SymbolSelector() {
   }, [selectedSymbol, setSelectedSymbol]);
 
   return (
-    <div className="absolute top-6 left-0 flex gap-2 overflow-x-auto p-2  rounded-lg z-50">
+    <div className="absolute top-6 left-0 flex gap-2 overflow-x-auto p-2 rounded-lg z-50">
       {symbols.map((symbol) => (
         <Button
           key={symbol.id}

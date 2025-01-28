@@ -50,7 +50,7 @@ export default function LoginPage() {
         toast.error(result.error);
       } else if (result?.success) {
         toast.success("Login successful! Redirecting...");
-        router.push("/dashboard");
+        router.push("/user");
       }
     } catch (error) {
       toast.error("Something went wrong");

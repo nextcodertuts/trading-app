@@ -64,7 +64,7 @@ export default function RegisterPage() {
         toast.error(result.error);
       } else if (result?.success) {
         toast.success("Registration successful! Redirecting...");
-        router.push("/dashboard");
+        router.push("/user");
       }
     } catch (error) {
       toast.error("Something went wrong");

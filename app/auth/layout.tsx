@@ -8,7 +8,11 @@ export default async function Layout({
 }) {
   const { user } = await validateRequest();
 
-  if (user) redirect("/dashboard");
+  if (user?.role === "ADMIN") {
+    redirect("/admin");
+  } else if (user) {
+    redirect("/user");
+  }
 
   return <>{children}</>;
 }
