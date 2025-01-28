@@ -16,7 +16,7 @@ interface Trade {
   createdAt: string;
 }
 
-export function BinaryTradeHistory() {
+export function TradeHistory() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [expandedTrade, setExpandedTrade] = useState<number | null>(null);
 

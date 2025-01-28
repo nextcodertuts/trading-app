@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BinaryTradeHistory } from "@/components/BinaryTradeHistory";
+import { TradeHistory } from "@/components/TradeHistory";
 import { TradingViewChart } from "@/components/TradingViewChart";
 import { TradingActionPanel } from "@/components/user-dashboard/TradingActionPanel";
 import { SymbolSelector } from "@/components/user-dashboard/SymbolSelector";
@@ -39,7 +39,7 @@ export default function UserPage() {
 
               <div className="overflow-auto max-h-[calc(100vh-500px)]">
                 <Suspense fallback={<div>Loading history...</div>}>
-                  <BinaryTradeHistory />
+                  <TradeHistory />
                 </Suspense>
               </div>
             </div>
