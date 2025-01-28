@@ -1,3 +1,4 @@
+// components/user-dashboard/LivePriceDisplay.tsx
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 "use client";

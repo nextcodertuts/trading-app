@@ -64,23 +64,40 @@ model WalletTransaction {
   updatedAt   DateTime @updatedAt
 }
 
+// prisma/schema.prisma
+
 model Symbol {
-  id                Int      @id @default(autoincrement())
-  name              String   @unique // e.g., "BTCUSDT"
-  displayName       String   // e.g., "BTC/USDT"
-  currentPrice      Float    // Current market price from Binance
-  manipulatedPrice  Float    // Manipulated price for trading
-  payout           Float    @default(80) // Payout percentage
-  enabled          Boolean  @default(true)
-  minAmount        Float    @default(10) // Minimum trade amount
-  maxAmount        Float    @default(1000) // Maximum trade amount
-  manipulationConfig Json    // Configuration for price manipulation
-  binanceSymbol    String   // Symbol as used on Binance
-  trend            String?  // "up", "down", or "sideways"
-  volatility       Float    @default(1.0) // Volatility factor
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  orders           Order[]
+  id                 Int               @id @default(autoincrement())
+  name               String            @unique
+  displayName        String
+  binanceSymbol      String
+  currentPrice       Float
+  manipulatedPrice   Float
+  payout             Float
+  enabled            Boolean           @default(true)
+  trend              String            @default("sideways") // "up", "down", or "sideways"
+  volatility         Float             @default(1.0)
+  bias               Float             @default(0)
+  manipulationPercentage Float         @default(0.1)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  historicalPrices   HistoricalPrice[]
+  orders             Order[]
+}
+
+model HistoricalPrice {
+  id        Int      @id @default(autoincrement())
+  symbolId  Int
+  symbol    Symbol   @relation(fields: [symbolId], references: [id])
+  timestamp DateTime
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    Int
+  createdAt DateTime @default(now())
+
+  @@index([symbolId, timestamp])
 }
 
 model AdminLog {

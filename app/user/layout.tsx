@@ -1,3 +1,4 @@
+// app/user/layout.tsx
 import { redirect } from "next/navigation";
 import { validateRequest } from "@/lib/auth";
 import SessionProvider from "./SessionProvider";

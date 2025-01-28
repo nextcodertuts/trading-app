@@ -1,5 +1,6 @@
-// app/api/market-data/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// app/api/market-data/route.ts
+
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -19,19 +20,12 @@ async function fetchBinancePrice(symbol: string): Promise<number | null> {
   }
 }
 
-function manipulatePrice(basePrice: number, config: any): number {
-  const {
-    trend = "sideways",
-    volatility = 1.0,
-    bias = 0,
-    manipulationPercentage = 0.1,
-  } = config;
+function manipulatePrice(basePrice: number, symbol: any): number {
+  const { trend, volatility, bias, manipulationPercentage } = symbol;
 
-  // Base manipulation
   let manipulatedPrice =
     basePrice * (1 + (Math.random() * 2 - 1) * manipulationPercentage);
 
-  // Apply trend bias
   switch (trend) {
     case "up":
       manipulatedPrice *= 1 + bias;
@@ -40,12 +34,10 @@ function manipulatePrice(basePrice: number, config: any): number {
       manipulatedPrice *= 1 - bias;
       break;
     case "sideways":
-      // Random walk with smaller amplitude
       manipulatedPrice *= 1 + (Math.random() * 2 - 1) * bias * 0.5;
       break;
   }
 
-  // Apply volatility
   manipulatedPrice *= 1 + (Math.random() * 2 - 1) * volatility * 0.01;
 
   return Number(manipulatedPrice.toFixed(2));
@@ -79,10 +71,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const manipulatedPrice = manipulatePrice(
-      binancePrice,
-      symbol.manipulationConfig
-    );
+    const manipulatedPrice = manipulatePrice(binancePrice, symbol);
 
     // Update symbol prices in database
     await prisma.symbol.update({
@@ -91,6 +80,19 @@ export async function GET(request: Request) {
         currentPrice: binancePrice,
         manipulatedPrice: manipulatedPrice,
         updatedAt: new Date(),
+      },
+    });
+
+    // Store historical price
+    await prisma.historicalPrice.create({
+      data: {
+        symbolId: parseInt(symbolId),
+        timestamp: new Date(),
+        open: manipulatedPrice,
+        high: manipulatedPrice,
+        low: manipulatedPrice,
+        close: manipulatedPrice,
+        volume: 0, // You might want to implement real volume tracking
       },
     });
 

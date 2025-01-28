@@ -1,3 +1,4 @@
+// app/user/page.tsx
 import { Suspense } from "react";
 import { TradeHistory } from "@/components/TradeHistory";
 import { TradingViewChart } from "@/components/TradingViewChart";

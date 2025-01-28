@@ -1,3 +1,5 @@
+// lib/customDatafeed.ts
+
 interface Bar {
   time: number;
   open: number;
@@ -21,31 +23,17 @@ interface SymbolInfo {
   volume_precision: number;
 }
 
-function generateHistoricalData(basePrice: number, bars: number): Bar[] {
-  const data: Bar[] = [];
-  let currentPrice = basePrice;
-  const now = new Date();
-
-  for (let i = bars - 1; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60000); // 1-minute intervals
-    const volatility = 0.002; // 0.2% volatility
-    const priceChange =
-      currentPrice * (1 + (Math.random() * 2 - 1) * volatility);
-
-    const bar: Bar = {
-      time: Math.floor(time.getTime() / 1000),
-      open: currentPrice,
-      high: Math.max(currentPrice, priceChange),
-      low: Math.min(currentPrice, priceChange),
-      close: priceChange,
-      volume: Math.floor(Math.random() * 100),
-    };
-
-    data.push(bar);
-    currentPrice = priceChange;
-  }
-
-  return data;
+async function fetchHistoricalData(
+  symbolId: number,
+  from: number,
+  to: number,
+  resolution: string
+): Promise<Bar[]> {
+  const response = await fetch(
+    `/api/historical-data?symbolId=${symbolId}&from=${from}&to=${to}&resolution=${resolution}`
+  );
+  if (!response.ok) throw new Error("Failed to fetch historical data");
+  return await response.json();
 }
 
 export function createCustomDatafeed(
@@ -107,23 +95,26 @@ export function createCustomDatafeed(
       }
     },
 
-    getBars: (
+    getBars: async (
       symbolInfo: any,
       resolution: string,
       periodParams: any,
       onHistoryCallback: (bars: Bar[], meta: { noData: boolean }) => void,
       onErrorCallback: (error: string) => void
     ) => {
-      const currentPrice = getCurrentPrice();
-      if (currentPrice !== null) {
-        const bars = generateHistoricalData(
-          currentPrice,
-          periodParams.countBack
+      try {
+        const bars = await fetchHistoricalData(
+          symbolInfo.id,
+          periodParams.from,
+          periodParams.to,
+          resolution
         );
-        lastBar = bars[bars.length - 1];
-        onHistoryCallback(bars, { noData: false });
-      } else {
-        onHistoryCallback([], { noData: true });
+        if (bars.length > 0) {
+          lastBar = bars[bars.length - 1];
+        }
+        onHistoryCallback(bars, { noData: bars.length === 0 });
+      } catch (error) {
+        onErrorCallback("Error fetching historical data");
       }
     },
 
@@ -140,20 +131,18 @@ export function createCustomDatafeed(
         if (currentPrice !== null && lastBar !== null) {
           const time = Math.floor(Date.now() / 1000);
 
-          // Update existing bar if within the same minute
           if (Math.floor(lastBar.time / 60) === Math.floor(time / 60)) {
             lastBar.close = currentPrice;
             lastBar.high = Math.max(lastBar.high, currentPrice);
             lastBar.low = Math.min(lastBar.low, currentPrice);
           } else {
-            // Create new bar
             lastBar = {
               time: time,
               open: lastBar.close,
-              high: Math.max(lastBar.close, currentPrice),
-              low: Math.min(lastBar.close, currentPrice),
+              high: currentPrice,
+              low: currentPrice,
               close: currentPrice,
-              volume: Math.floor(Math.random() * 100),
+              volume: 0,
             };
           }
 

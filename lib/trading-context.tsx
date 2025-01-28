@@ -1,3 +1,5 @@
+// lib/trading-context.tsx
+
 "use client";
 
 import type React from "react";
@@ -55,7 +57,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const response = await fetch(
-        `/api/market-data?symbolId=${selectedSymbol.id}&binanceSymbol=${selectedSymbol.binanceSymbol}`
+        `/api/market-data?symbolId=${selectedSymbol.id}`
       );
       if (!response.ok) throw new Error("Failed to fetch price");
       const data = await response.json();

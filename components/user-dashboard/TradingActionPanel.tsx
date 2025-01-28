@@ -1,3 +1,4 @@
+// components/user-dashboard/TradingActionPanel.tsx
 "use client";
 
 import { useState } from "react";

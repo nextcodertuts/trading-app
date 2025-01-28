@@ -1,3 +1,4 @@
+// app/api/symbols/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateRequest } from "@/lib/auth";
