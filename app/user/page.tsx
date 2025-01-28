@@ -19,7 +19,7 @@ export default function UserPage() {
             </Suspense>
             <div className="space-y-4 h-[calc(100vh-2rem)]">
               <Suspense fallback={<div>Loading chart...</div>}>
-                <TradingViewChart interval="1" height={800} />
+                <TradingViewChart />
               </Suspense>
             </div>
           </section>

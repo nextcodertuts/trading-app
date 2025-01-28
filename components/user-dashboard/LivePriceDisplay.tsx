@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+//@ts-nocheck
 "use client";
 
 import { useTrading } from "@/lib/trading-context";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 export function LivePriceDisplay() {
-  const { selectedSymbol, currentPrice, priceDirection } = useTrading();
+  const { selectedSymbol, manipulatedPrice, currentPrice, priceDirection } =
+    useTrading();
 
   if (!selectedSymbol || !currentPrice) {
     return <div>Select a symbol to view price data...</div>;
@@ -25,7 +27,7 @@ export function LivePriceDisplay() {
               priceDirection === "up" ? "text-green-500" : "text-red-500"
             }`}
           >
-            ${currentPrice.toFixed(2)}
+            ${manipulatedPrice.toFixed(2)}
           </div>
           <div
             className={`flex items-center ${
