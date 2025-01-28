@@ -4,6 +4,7 @@ import { TradingViewChart } from "@/components/TradingViewChart";
 import { TradingActionPanel } from "@/components/user-dashboard/TradingActionPanel";
 import { SymbolSelector } from "@/components/user-dashboard/SymbolSelector";
 import { LivePriceDisplay } from "@/components/user-dashboard/LivePriceDisplay";
+import { Balance } from "@/components/user-dashboard/Balance";
 
 export default function UserPage() {
   return (
@@ -25,6 +26,9 @@ export default function UserPage() {
           {/* Trading Panel Section */}
           <section className="col-span-2 space-y-4 border p-2 rounded-md">
             <div className="h-full space-y-4">
+              <Suspense fallback={<div>Loading price display...</div>}>
+                <Balance />
+              </Suspense>
               <Suspense fallback={<div>Loading price display...</div>}>
                 <LivePriceDisplay />
               </Suspense>

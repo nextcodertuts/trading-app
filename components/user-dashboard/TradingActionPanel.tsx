@@ -27,8 +27,7 @@ const timeOptions = [
 
 export function TradingActionPanel() {
   const { toast } = useToast();
-  const { selectedSymbol, currentPrice, userBalance, updateBalance } =
-    useTrading();
+  const { selectedSymbol, currentPrice, updateBalance } = useTrading();
   const [tradeDetails, setTradeDetails] = useState({
     amount: "",
     time: "60",
@@ -57,15 +56,6 @@ export function TradingActionPanel() {
       toast({
         title: "Error",
         description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (Number(tradeDetails.amount) > userBalance) {
-      toast({
-        title: "Error",
-        description: "Insufficient balance.",
         variant: "destructive",
       });
       return;
@@ -108,12 +98,6 @@ export function TradingActionPanel() {
 
   return (
     <div className="space-y-6 max-w-sm mx-auto">
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          Balance: ${userBalance.toFixed(2)}
-        </p>
-      </div>
-
       <div className="space-y-4">
         <div>
           <label

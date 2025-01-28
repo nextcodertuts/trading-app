@@ -50,7 +50,7 @@ export function TradingViewChart({
           save_image: false,
           height: height,
           autosize: autosize,
-          show_popup_button: true,
+          show_popup_button: false,
           popup_width: "1000",
           popup_height: "650",
         });
