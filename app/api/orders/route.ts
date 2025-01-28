@@ -1,38 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { validateRequest } from "@/lib/auth"; // Import your auth library
-
-// Create a New Order
-export async function POST(req: Request) {
-  const { user, session } = await validateRequest();
-  if (!session || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { symbolId, amount, direction, expiresAt, entryPrice } =
-    await req.json();
-
-  try {
-    const order = await prisma.order.create({
-      data: {
-        userId: user.id,
-        symbolId,
-        amount,
-        direction,
-        expiresAt,
-        entryPrice,
-      },
-    });
-
-    return NextResponse.json(order, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create order" },
-      { status: 500 }
-    );
-  }
-}
+import { validateRequest } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
@@ -47,30 +15,44 @@ export async function GET(request: Request) {
     let orders;
 
     if (status === "open") {
-      // Fetch open orders
+      // Fetch open orders (orders with no outcome)
       orders = await prisma.order.findMany({
         where: {
           userId: user.id,
           outcome: null, // Outcome is null for open orders
+          expiresAt: {
+            gt: new Date(), // Not expired yet
+          },
         },
-        include: { symbol: true },
+        include: {
+          symbol: {
+            select: { name: true },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
     } else {
-      // Fetch historical orders
+      // Fetch historical orders (completed orders with outcomes)
       orders = await prisma.order.findMany({
         where: {
           userId: user.id,
-          outcome: { not: null }, // Historical orders have a non-null outcome
+          NOT: {
+            outcome: null,
+          },
         },
-        include: { symbol: true },
+        include: {
+          symbol: {
+            select: { name: true },
+          },
+        },
         orderBy: { createdAt: "desc" },
+        take: 50, // Limit to last 50 trades
       });
     }
 
-    return NextResponse.json({ success: true, orders });
+    return NextResponse.json({ orders });
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching orders:", error);
     return NextResponse.json(
       { error: "Failed to fetch orders" },
       { status: 500 }

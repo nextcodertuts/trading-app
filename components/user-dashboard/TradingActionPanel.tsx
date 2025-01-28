@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowUp, ArrowDown } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const timeOptions = [
   { value: "5", label: "5s" },
@@ -24,6 +25,8 @@ const timeOptions = [
   { value: "180", label: "3m" },
   { value: "300", label: "5m" },
 ];
+
+const predefinedAmounts = [10, 50, 100, 500, 1000];
 
 export function TradingActionPanel() {
   const { toast } = useToast();
@@ -40,6 +43,10 @@ export function TradingActionPanel() {
 
   const handleTimeChange = (value: string) => {
     setTradeDetails({ ...tradeDetails, time: value });
+  };
+
+  const handlePredefinedAmount = (amount: number) => {
+    setTradeDetails({ ...tradeDetails, amount: amount.toString() });
   };
 
   const placeOrder = async (direction: "up" | "down") => {
@@ -97,66 +104,82 @@ export function TradingActionPanel() {
   };
 
   return (
-    <div className="space-y-6 max-w-sm mx-auto">
-      <div className="space-y-4">
-        <div>
-          <label
-            htmlFor="amount"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Amount
-          </label>
-          <Input
-            id="amount"
-            name="amount"
-            type="number"
-            value={tradeDetails.amount}
-            onChange={handleInputChange}
-            placeholder="Enter trade amount"
-            className="w-full"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="time"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Time
-          </label>
-          <Select onValueChange={handleTimeChange} value={tradeDetails.time}>
-            <SelectTrigger id="time" className="w-full">
-              <SelectValue placeholder="Select time" />
-            </SelectTrigger>
-            <SelectContent>
-              {timeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
+    <Card>
+      <CardHeader>
+        <CardTitle>Place Trade</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-1 block">
+              Quick Amount
+            </label>
+            <div className="grid grid-cols-5 gap-2">
+              {predefinedAmounts.map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePredefinedAmount(amount)}
+                >
+                  ${amount}
+                </Button>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
+            </div>
+          </div>
 
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={() => placeOrder("up")}
-            className="py-6 text-lg font-semibold bg-green-500 hover:bg-green-600 text-white"
-            disabled={!selectedSymbol || !currentPrice}
-          >
-            <ArrowUp className="mr-2 h-5 w-5" />
-            Up
-          </Button>
-          <Button
-            onClick={() => placeOrder("down")}
-            className="py-6 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white"
-            disabled={!selectedSymbol || !currentPrice}
-          >
-            <ArrowDown className="mr-2 h-5 w-5" />
-            Down
-          </Button>
+          <div>
+            <label className="text-sm font-medium mb-1 block">
+              Custom Amount
+            </label>
+            <Input
+              name="amount"
+              type="number"
+              value={tradeDetails.amount}
+              onChange={handleInputChange}
+              placeholder="Enter trade amount"
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">
+              Expiry Time
+            </label>
+            <Select onValueChange={handleTimeChange} value={tradeDetails.time}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select time" />
+              </SelectTrigger>
+              <SelectContent>
+                {timeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-6">
+            <Button
+              onClick={() => placeOrder("up")}
+              className="py-6 text-lg font-semibold bg-green-500 hover:bg-green-600 text-white"
+              disabled={!selectedSymbol || !currentPrice}
+            >
+              <ArrowUp className="mr-2 h-5 w-5" />
+              Up
+            </Button>
+            <Button
+              onClick={() => placeOrder("down")}
+              className="py-6 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white"
+              disabled={!selectedSymbol || !currentPrice}
+            >
+              <ArrowDown className="mr-2 h-5 w-5" />
+              Down
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
