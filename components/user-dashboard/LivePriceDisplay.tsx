@@ -14,13 +14,13 @@ export function LivePriceDisplay() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">
+        <CardTitle className=" font-semibold">
           {selectedSymbol.name} Market Price
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold">${currentPrice.toFixed(2)}</div>
+          <div className="text-xl font-bold">${currentPrice.toFixed(2)}</div>
           <div
             className={`flex items-center ${
               priceDirection === "up" ? "text-green-500" : "text-red-500"
@@ -33,7 +33,7 @@ export function LivePriceDisplay() {
             )}
           </div>
         </div>
-        <div className="text-sm text-muted-foreground mt-2">
+        <div className="text-xs text-muted-foreground mt-2">
           Last updated: {new Date().toLocaleTimeString()}
         </div>
       </CardContent>

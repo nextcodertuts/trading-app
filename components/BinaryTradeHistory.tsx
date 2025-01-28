@@ -46,7 +46,7 @@ export function BinaryTradeHistory() {
 
   return (
     <div className="">
-      <h2 className="text-xl font-bold mb-6">Trade History</h2>
+      <h2 className="text-lg font-bold mb-6">Trade History</h2>
       <div className="space-y-4">
         {trades.map((trade) => (
           <TradeItem

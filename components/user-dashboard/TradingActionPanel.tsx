@@ -109,7 +109,6 @@ export function TradingActionPanel() {
   return (
     <div className="space-y-6 max-w-sm mx-auto">
       <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-800">Place Your Trade</h2>
         <p className="text-sm text-muted-foreground">
           Balance: ${userBalance.toFixed(2)}
         </p>

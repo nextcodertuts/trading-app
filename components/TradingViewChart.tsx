@@ -3,6 +3,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
+import { useTrading } from "@/lib/trading-context";
 
 declare global {
   interface Window {
@@ -11,7 +12,6 @@ declare global {
 }
 
 interface TradingViewChartProps {
-  symbol: string;
   interval?: string;
   theme?: "light" | "dark";
   autosize?: boolean;
@@ -19,16 +19,16 @@ interface TradingViewChartProps {
 }
 
 export function TradingViewChart({
-  symbol = "BTCUSDT",
   interval = "1",
   height = 600,
   autosize = true,
 }: TradingViewChartProps) {
   const container = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
+  const { selectedSymbol } = useTrading();
 
   useEffect(() => {
-    if (!container.current) return;
+    if (!container.current || !selectedSymbol) return;
 
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/tv.js";
@@ -37,7 +37,7 @@ export function TradingViewChart({
       if (typeof window.TradingView !== "undefined" && container.current) {
         new window.TradingView.widget({
           container_id: container.current.id,
-          symbol: `BINANCE:${symbol}`,
+          symbol: `BINANCE:${selectedSymbol.name}`,
           interval: interval,
           timezone: "Etc/UTC",
           theme: theme === "dark" ? "dark" : "light",
@@ -46,7 +46,7 @@ export function TradingViewChart({
           toolbar_bg: "#f1f3f6",
           enable_publishing: false,
           hide_side_toolbar: false,
-          allow_symbol_change: true,
+          allow_symbol_change: false,
           save_image: false,
           height: height,
           autosize: autosize,
@@ -63,7 +63,11 @@ export function TradingViewChart({
         container.current.innerHTML = "";
       }
     };
-  }, [symbol, interval, theme, height, autosize]);
+  }, [interval, theme, height, autosize, selectedSymbol]);
+
+  if (!selectedSymbol) {
+    return <div>Loading chart...</div>;
+  }
 
   return (
     <div
