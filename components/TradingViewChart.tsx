@@ -84,14 +84,27 @@ export function TradingViewChart({
         show_popup_button: false,
         popup_width: "1000",
         popup_height: "650",
-        debug: true,
+        enabled_features: ["use_localstorage_for_settings"],
+        disabled_features: [
+          "header_symbol_search",
+          "header_settings",
+          "header_compare",
+          "header_undo_redo",
+          "header_screenshot",
+          "header_saveload",
+        ],
+        overrides: {
+          "mainSeriesProperties.candleStyle.upColor": "#26a69a",
+          "mainSeriesProperties.candleStyle.downColor": "#ef5350",
+          "mainSeriesProperties.candleStyle.wickUpColor": "#26a69a",
+          "mainSeriesProperties.candleStyle.wickDownColor": "#ef5350",
+        },
         library_path: "https://s3.tradingview.com/tv.js",
       };
 
       try {
         widgetRef.current = new window.TradingView.widget(widgetOptions);
         widgetRef.current.onChartReady(() => {
-          console.log("Chart is ready");
           if (isComponentMounted.current) {
             setChartLoaded(true);
           }
@@ -134,7 +147,7 @@ export function TradingViewChart({
   ]);
 
   if (!selectedSymbol) {
-    return <div>Loading chart...</div>;
+    return <div>Please select a trading symbol...</div>;
   }
 
   return (
