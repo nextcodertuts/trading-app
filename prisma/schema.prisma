@@ -19,15 +19,13 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   sessions           Session[]
-  adminLogs          AdminLog[]          // Admin logs (for admins only)
+  adminLogs          AdminLog[]
 }
 
 model Session {
   id          String   @id @default(cuid())
   userId      String
   expiresAt   DateTime
-  ipAddress   String?  // For tracking IP address
-  deviceInfo  String?  // For tracking device details (optional)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -37,16 +35,21 @@ model Order {
   id          Int      @id @default(autoincrement())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  symbolId    Int      // Relation to the Symbol being traded
+  symbolId    Int
   symbol      Symbol   @relation(fields: [symbolId], references: [id])
   amount      Float
   direction   String   // "up" or "down"
-  entryPrice  Float    // Price when the order was placed
-  exitPrice   Float?   // Price at the expiration of the order
+  entryPrice  Float    // Original price when order was placed
+  exitPrice   Float?   // Price at expiration
+  manipulatedEntryPrice Float // Manipulated price when order was placed
+  manipulatedExitPrice Float? // Manipulated price at expiration
   outcome     String?  // "win", "loss", or null if pending
   expiresAt   DateTime // Time when the binary option expires
+  duration    Int      // Duration in seconds
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  profitLoss  Float?   // Calculated profit/loss amount
+  payout      Float    // Payout percentage for this trade
 }
 
 model WalletTransaction {
@@ -62,26 +65,30 @@ model WalletTransaction {
 }
 
 model Symbol {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique // Symbol name (e.g., BTC/USD, EUR/USD)
-  currentPrice Float   // Current market price
-  payout      Float    @default(80) // Payout percentage for winning trades
-  enabled     Boolean  @default(true) // Enable or disable trading for this symbol
-  trend       String?  // Current trend (e.g., "up", "down", "volatile")
-  volatility  Float    @default(1.0) // Volatility factor to simulate price changes
-  status      String   @default("active") // Symbol status: active, paused, or inactive
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orders      Order[]  // Relation to orders placed on this symbol
+  id                Int      @id @default(autoincrement())
+  name              String   @unique // e.g., "BTCUSDT"
+  displayName       String   // e.g., "BTC/USDT"
+  currentPrice      Float    // Current market price from Binance
+  manipulatedPrice  Float    // Manipulated price for trading
+  payout           Float    @default(80) // Payout percentage
+  enabled          Boolean  @default(true)
+  minAmount        Float    @default(10) // Minimum trade amount
+  maxAmount        Float    @default(1000) // Maximum trade amount
+  manipulationConfig Json    // Configuration for price manipulation
+  binanceSymbol    String   // Symbol as used on Binance
+  trend            String?  // "up", "down", or "sideways"
+  volatility       Float    @default(1.0) // Volatility factor
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  orders           Order[]
 }
-
 
 model AdminLog {
   id          Int      @id @default(autoincrement())
   adminId     String
   admin       User     @relation(fields: [adminId], references: [id])
-  action      String   // Description of the admin action
-  details     String?  // Additional details (e.g., JSON payload)
+  action      String
+  details     String?
   createdAt   DateTime @default(now())
 }
 

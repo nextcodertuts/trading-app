@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -22,12 +21,15 @@ export default function ClientSymbolForm() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
-    currentPrice: 0,
-    payout: 80,
+    displayName: "",
+    binanceSymbol: "",
+    currentPrice: "0",
+    payout: "80",
     enabled: true,
-    trend: "",
-    volatility: 1.0,
-    status: "active",
+    trend: "sideways",
+    volatility: "1.0",
+    minAmount: "10",
+    maxAmount: "1000",
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,29 +46,42 @@ export default function ClientSymbolForm() {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Symbol created successfully.",
-        });
-        setFormData({
-          name: "",
-          currentPrice: 0,
-          payout: 80,
-          enabled: true,
-          trend: "",
-          volatility: 1.0,
-          status: "active",
-        });
-        setIsExpanded(false);
-        router.refresh();
-      } else {
-        throw new Error("Failed to create symbol");
+      if (!response.ok) {
+        throw new Error(await response.text());
       }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Success",
+        description: "Symbol created successfully.",
+      });
+
+      setFormData({
+        name: "",
+        displayName: "",
+        binanceSymbol: "",
+        currentPrice: "0",
+        payout: "80",
+        enabled: true,
+        trend: "sideways",
+        volatility: "1.0",
+        minAmount: "10",
+        maxAmount: "1000",
+      });
+
+      setIsExpanded(false);
+      router.refresh();
     } catch (error) {
+      console.error("Error creating symbol:", error);
       toast({
         title: "Error",
-        description: "Failed to create symbol. Please try again.",
+        description:
+          error instanceof Error ? error.message : "Failed to create symbol",
         variant: "destructive",
       });
     } finally {
@@ -88,7 +103,7 @@ export default function ClientSymbolForm() {
       className="space-y-4 mb-8 p-4 border rounded-md"
     >
       <div>
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">Symbol Name (e.g., BTCUSDT)</Label>
         <Input
           id="name"
           value={formData.name}
@@ -96,22 +111,45 @@ export default function ClientSymbolForm() {
           required
         />
       </div>
+
+      <div>
+        <Label htmlFor="displayName">Display Name (e.g., BTC/USDT)</Label>
+        <Input
+          id="displayName"
+          value={formData.displayName}
+          onChange={(e) =>
+            setFormData({ ...formData, displayName: e.target.value })
+          }
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="binanceSymbol">Binance Symbol (e.g., BTCUSDT)</Label>
+        <Input
+          id="binanceSymbol"
+          value={formData.binanceSymbol}
+          onChange={(e) =>
+            setFormData({ ...formData, binanceSymbol: e.target.value })
+          }
+          required
+        />
+      </div>
+
       <div>
         <Label htmlFor="currentPrice">Current Price</Label>
         <Input
           id="currentPrice"
           type="number"
-          step="0.01"
+          step="0.000001"
           value={formData.currentPrice}
           onChange={(e) =>
-            setFormData({
-              ...formData,
-              currentPrice: Number.parseFloat(e.target.value),
-            })
+            setFormData({ ...formData, currentPrice: e.target.value })
           }
           required
         />
       </div>
+
       <div>
         <Label htmlFor="payout">Payout (%)</Label>
         <Input
@@ -119,15 +157,39 @@ export default function ClientSymbolForm() {
           type="number"
           step="0.1"
           value={formData.payout}
+          onChange={(e) => setFormData({ ...formData, payout: e.target.value })}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="minAmount">Minimum Amount</Label>
+        <Input
+          id="minAmount"
+          type="number"
+          step="0.1"
+          value={formData.minAmount}
           onChange={(e) =>
-            setFormData({
-              ...formData,
-              payout: Number.parseFloat(e.target.value),
-            })
+            setFormData({ ...formData, minAmount: e.target.value })
           }
           required
         />
       </div>
+
+      <div>
+        <Label htmlFor="maxAmount">Maximum Amount</Label>
+        <Input
+          id="maxAmount"
+          type="number"
+          step="0.1"
+          value={formData.maxAmount}
+          onChange={(e) =>
+            setFormData({ ...formData, maxAmount: e.target.value })
+          }
+          required
+        />
+      </div>
+
       <div>
         <Label htmlFor="trend">Trend</Label>
         <Select
@@ -138,37 +200,27 @@ export default function ClientSymbolForm() {
             <SelectValue placeholder="Select trend" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="sideways">Sideways</SelectItem>
             <SelectItem value="up">Up</SelectItem>
             <SelectItem value="down">Down</SelectItem>
-            <SelectItem value="volatile">Volatile</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
       <div>
-        <Label htmlFor="volatility">Volatility</Label>
+        <Label htmlFor="volatility">Volatility Factor</Label>
         <Input
           id="volatility"
           type="number"
           step="0.1"
           value={formData.volatility}
           onChange={(e) =>
-            setFormData({
-              ...formData,
-              volatility: Number.parseFloat(e.target.value),
-            })
+            setFormData({ ...formData, volatility: e.target.value })
           }
           required
         />
       </div>
-      <div>
-        <Label htmlFor="status">Status</Label>
-        <Input
-          id="status"
-          value={formData.status}
-          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-          required
-        />
-      </div>
+
       <div className="flex items-center space-x-2">
         <Switch
           id="enabled"
@@ -179,6 +231,7 @@ export default function ClientSymbolForm() {
         />
         <Label htmlFor="enabled">Enabled</Label>
       </div>
+
       <div className="flex space-x-2">
         <Button type="submit" disabled={isLoading}>
           {isLoading ? "Creating..." : "Create Symbol"}

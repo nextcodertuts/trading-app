@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -17,31 +18,34 @@ async function fetchBinancePrice(symbol: string): Promise<number | null> {
   }
 }
 
-async function manipulatePrice(
-  basePrice: number,
-  symbolId: number
-): Promise<number> {
-  const symbol = await prisma.symbol.findUnique({
-    where: { id: symbolId },
-  });
+function manipulatePrice(basePrice: number, config: any): number {
+  const {
+    trend = "sideways",
+    volatility = 1.0,
+    bias = 0,
+    manipulationPercentage = 0.1,
+  } = config;
 
-  if (!symbol) return basePrice;
+  // Base manipulation
+  let manipulatedPrice =
+    basePrice * (1 + (Math.random() * 2 - 1) * manipulationPercentage);
 
-  let manipulatedPrice = basePrice;
-  const volatilityFactor = symbol.volatility / 100;
-
-  switch (symbol.trend) {
+  // Apply trend bias
+  switch (trend) {
     case "up":
-      manipulatedPrice *= 1 + volatilityFactor;
+      manipulatedPrice *= 1 + bias;
       break;
     case "down":
-      manipulatedPrice *= 1 - volatilityFactor;
+      manipulatedPrice *= 1 - bias;
       break;
-    case "volatile":
-      const randomFactor = (Math.random() * 2 - 1) * volatilityFactor;
-      manipulatedPrice *= 1 + randomFactor;
+    case "sideways":
+      // Random walk with smaller amplitude
+      manipulatedPrice *= 1 + (Math.random() * 2 - 1) * bias * 0.5;
       break;
   }
+
+  // Apply volatility
+  manipulatedPrice *= 1 + (Math.random() * 2 - 1) * volatility * 0.01;
 
   return Number(manipulatedPrice.toFixed(2));
 }
@@ -50,7 +54,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const symbolId = searchParams.get("symbolId");
-    const binanceSymbol = searchParams.get("binanceSymbol") || "BTCUSDT";
 
     if (!symbolId) {
       return NextResponse.json(
@@ -59,22 +62,41 @@ export async function GET(request: Request) {
       );
     }
 
-    const basePrice = await fetchBinancePrice(binanceSymbol);
-    if (!basePrice) {
+    const symbol = await prisma.symbol.findUnique({
+      where: { id: parseInt(symbolId) },
+    });
+
+    if (!symbol) {
+      return NextResponse.json({ error: "Symbol not found" }, { status: 404 });
+    }
+
+    const binancePrice = await fetchBinancePrice(symbol.binanceSymbol);
+    if (!binancePrice) {
       return NextResponse.json(
-        { error: "Failed to fetch base price" },
+        { error: "Failed to fetch price" },
         { status: 500 }
       );
     }
 
-    const manipulatedPrice = await manipulatePrice(
-      basePrice,
-      parseInt(symbolId)
+    const manipulatedPrice = manipulatePrice(
+      binancePrice,
+      symbol.manipulationConfig
     );
 
+    // Update symbol prices in database
+    await prisma.symbol.update({
+      where: { id: parseInt(symbolId) },
+      data: {
+        currentPrice: binancePrice,
+        manipulatedPrice: manipulatedPrice,
+        updatedAt: new Date(),
+      },
+    });
+
     return NextResponse.json({
-      basePrice,
-      manipulatedPrice,
+      symbol: symbol.name,
+      currentPrice: binancePrice,
+      manipulatedPrice: manipulatedPrice,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
