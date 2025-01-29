@@ -1,144 +1,174 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// components/TradingViewChart.tsx
-
 "use client";
-
-import React, { useRef, useEffect, useCallback } from "react";
-import { useTheme } from "next-themes";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  createChart,
+  ColorType,
+  type IChartApi,
+  type ISeriesApi,
+  type UTCTimestamp,
+} from "lightweight-charts";
 import { useTrading } from "@/lib/trading-context";
-import { createCustomDatafeed } from "@/lib/customDatafeed";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
-interface TradingViewChartProps {
-  interval?: string;
-  height?: number;
-  autosize?: boolean;
-}
+const timeFrameToSeconds: { [key: string]: number } = {
+  "15s": 15,
+  "30s": 30,
+  "1m": 60,
+  "3m": 180,
+  "5m": 300,
+};
 
-declare global {
-  interface Window {
-    TradingView: any;
-  }
-}
-
-export function TradingViewChart({
-  interval = "1",
-  height = 600,
-  autosize = true,
-}: TradingViewChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { theme } = useTheme();
+export function TradingViewChart() {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   const { selectedSymbol, manipulatedPrice } = useTrading();
-  const widgetRef = useRef<any>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeFrame, setTimeFrame] = useState<string>("1m");
+  const lastCandleRef = useRef<{
+    time: UTCTimestamp;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+  } | null>(null);
 
-  const getCurrentPrice = useCallback(() => {
-    return manipulatedPrice;
-  }, [manipulatedPrice]);
-
-  const getSymbolInfo = useCallback(() => {
-    return selectedSymbol;
-  }, [selectedSymbol]);
+  const fetchHistoricalData = useCallback(async () => {
+    if (!selectedSymbol) return;
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/historical-data?symbolId=${selectedSymbol.id}&resolution=${timeFrame}`
+      );
+      const data = await response.json();
+      if (seriesRef.current) {
+        seriesRef.current.setData(data);
+        if (data.length > 0) {
+          lastCandleRef.current = data[data.length - 1];
+        }
+      }
+    } catch (error) {
+      console.error("Error loading historical data:", error);
+    }
+    setLoading(false);
+  }, [selectedSymbol, timeFrame]);
 
   useEffect(() => {
-    if (!containerRef.current || !selectedSymbol) return;
+    if (!chartContainerRef.current || !selectedSymbol) return;
 
-    const container = containerRef.current;
-    const containerId = `tradingview_${selectedSymbol.id}`;
-    container.id = containerId;
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: "#333",
+      },
+      grid: {
+        vertLines: { color: "#ddd" },
+        horzLines: { color: "#ddd" },
+      },
+      width: chartContainerRef.current.clientWidth,
+      height: 750,
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: timeFrame === "15s" || timeFrame === "30s",
+      },
+    });
 
-    const loadChart = () => {
-      if (typeof window.TradingView === "undefined") return;
+    const candlestickSeries = chart.addCandlestickSeries();
+    chartRef.current = chart;
+    seriesRef.current = candlestickSeries;
 
-      // Clean up previous widget if it exists
-      if (widgetRef.current) {
-        widgetRef.current.remove();
-        widgetRef.current = null;
-      }
+    fetchHistoricalData();
 
-      // Ensure container still exists
-      if (!document.getElementById(containerId)) return;
-
-      try {
-        const widgetOptions = {
-          symbol: selectedSymbol.binanceSymbol,
-          datafeed: createCustomDatafeed(getCurrentPrice, getSymbolInfo),
-          interval: interval,
-          container_id: containerId,
-          locale: "en",
-          disabled_features: [
-            "use_localstorage_for_settings",
-            "volume_force_overlay",
-            "left_toolbar",
-            "show_logo_on_all_charts",
-            "caption_buttons_text_if_possible",
-            "header_settings",
-            "header_chart_type",
-            "header_compare",
-            "header_undo_redo",
-            "header_screenshot",
-            "timeframes_toolbar",
-            "show_hide_button_in_legend",
-            "symbol_info",
-            "volume_force_overlay",
-          ],
-          enabled_features: ["hide_left_toolbar_by_default"],
-          charts_storage_url: "https://saveload.tradingview.com",
-          charts_storage_api_version: "1.1",
-          client_id: "tradingview.com",
-          user_id: "public_user_id",
-          fullscreen: false,
-          autosize: autosize,
-          height: height,
-          theme: theme === "dark" ? "Dark" : "Light",
-          loading_screen: { backgroundColor: "#131722" },
-          overrides: {
-            "mainSeriesProperties.candleStyle.upColor": "#26a69a",
-            "mainSeriesProperties.candleStyle.downColor": "#ef5350",
-            "mainSeriesProperties.candleStyle.wickUpColor": "#26a69a",
-            "mainSeriesProperties.candleStyle.wickDownColor": "#ef5350",
-          },
-          studies_overrides: {
-            "volume.volume.color.0": "#ef5350",
-            "volume.volume.color.1": "#26a69a",
-          },
-        };
-
-        const tvWidget = new window.TradingView.widget(widgetOptions);
-        widgetRef.current = tvWidget;
-      } catch (error) {
-        console.error("Error initializing TradingView widget:", error);
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
       }
     };
 
-    // Load TradingView library if not already loaded
-    if (!window.TradingView) {
-      const script = document.createElement("script");
-      script.type = "text/javascript";
-      script.src = "https://s3.tradingview.com/tv.js";
-      script.async = true;
-      script.onload = loadChart;
-      document.head.appendChild(script);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chart.remove();
+    };
+  }, [selectedSymbol, timeFrame, fetchHistoricalData]);
+
+  useEffect(() => {
+    if (!seriesRef.current || !manipulatedPrice || !lastCandleRef.current)
+      return;
+
+    const currentTime = Math.floor(Date.now() / 1000);
+    const timeFrameSeconds = timeFrameToSeconds[timeFrame];
+    const currentCandleTime =
+      Math.floor(currentTime / timeFrameSeconds) * timeFrameSeconds;
+
+    if (currentCandleTime === lastCandleRef.current.time) {
+      // Update the current candle
+      lastCandleRef.current.high = Math.max(
+        lastCandleRef.current.high,
+        manipulatedPrice
+      );
+      lastCandleRef.current.low = Math.min(
+        lastCandleRef.current.low,
+        manipulatedPrice
+      );
+      lastCandleRef.current.close = manipulatedPrice;
     } else {
-      loadChart();
+      // Create a new candle
+      const newCandle = {
+        time: currentCandleTime as UTCTimestamp,
+        open: lastCandleRef.current.close,
+        high: manipulatedPrice,
+        low: manipulatedPrice,
+        close: manipulatedPrice,
+      };
+      seriesRef.current.update(newCandle);
+      lastCandleRef.current = newCandle;
     }
 
-    // Cleanup function
-    return () => {
-      if (widgetRef.current) {
-        widgetRef.current.remove();
-        widgetRef.current = null;
-      }
-    };
-  }, [selectedSymbol?.id, theme]); // Recreate chart when symbol ID or theme changes
+    seriesRef.current.update(lastCandleRef.current);
+  }, [manipulatedPrice, timeFrame]);
+
+  const handleTimeFrameChange = (newTimeFrame: string) => {
+    setTimeFrame(newTimeFrame);
+  };
 
   if (!selectedSymbol) {
     return <div>Please select a trading symbol...</div>;
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-[97%] rounded-lg overflow-hidden border border-border"
-    />
+    <div className="w-full h-[95%] rounded-lg overflow-hidden border border-border p-1">
+      <div className="mb-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-fit px-1">
+              {timeFrame} <ChevronDown className=" h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {Object.keys(timeFrameToSeconds).map((tf) => (
+              <DropdownMenuItem
+                key={tf}
+                onSelect={() => handleTimeFrameChange(tf)}
+              >
+                {tf}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      {loading ? <p>Loading chart...</p> : null}
+      <div ref={chartContainerRef} />
+    </div>
   );
 }
