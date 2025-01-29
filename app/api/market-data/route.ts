@@ -84,10 +84,11 @@ export async function GET(request: Request) {
     });
 
     // Store historical price
+    const now = new Date();
     await prisma.historicalPrice.create({
       data: {
         symbolId: parseInt(symbolId),
-        timestamp: new Date(),
+        timestamp: now,
         open: manipulatedPrice,
         high: manipulatedPrice,
         low: manipulatedPrice,
@@ -100,7 +101,7 @@ export async function GET(request: Request) {
       symbol: symbol.name,
       currentPrice: binancePrice,
       manipulatedPrice: manipulatedPrice,
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISOString(),
     });
   } catch (error) {
     console.error("Market data error:", error);

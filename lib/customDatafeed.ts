@@ -1,3 +1,5 @@
+/* eslint-disable prefer-const */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/customDatafeed.ts
 
 interface Bar {
@@ -114,6 +116,7 @@ export function createCustomDatafeed(
         }
         onHistoryCallback(bars, { noData: bars.length === 0 });
       } catch (error) {
+        console.error("Error fetching historical data:", error);
         onErrorCallback("Error fetching historical data");
       }
     },
@@ -126,29 +129,35 @@ export function createCustomDatafeed(
     ) => {
       subscribers[subscriberUID] = onRealtimeCallback;
 
+      const intervalMs = getIntervalInMs(resolution);
+
       const intervalId = setInterval(() => {
         const currentPrice = getCurrentPrice();
         if (currentPrice !== null && lastBar !== null) {
           const time = Math.floor(Date.now() / 1000);
 
-          if (Math.floor(lastBar.time / 60) === Math.floor(time / 60)) {
-            lastBar.close = currentPrice;
+          if (time - lastBar.time < intervalMs / 1000) {
+            // Update the current bar
             lastBar.high = Math.max(lastBar.high, currentPrice);
             lastBar.low = Math.min(lastBar.low, currentPrice);
+            lastBar.close = currentPrice;
           } else {
-            lastBar = {
-              time: time,
+            // Create a new bar
+            const newBar = {
+              time: time - (time % (intervalMs / 1000)),
               open: lastBar.close,
               high: currentPrice,
               low: currentPrice,
               close: currentPrice,
               volume: 0,
             };
+            onRealtimeCallback(newBar);
+            lastBar = newBar;
           }
 
           onRealtimeCallback(lastBar);
         }
-      }, 1000);
+      }, 1000); // Update every second
 
       return () => {
         clearInterval(intervalId);
@@ -160,4 +169,32 @@ export function createCustomDatafeed(
       delete subscribers[subscriberUID];
     },
   };
+}
+function getIntervalInMs(resolution: string): number {
+  switch (resolution) {
+    case "15S":
+      return 15 * 1000;
+    case "30S":
+      return 30 * 1000;
+    case "1":
+      return 60 * 1000;
+    case "3":
+      return 3 * 60 * 1000;
+    case "5":
+      return 5 * 60 * 1000;
+    case "15":
+      return 15 * 60 * 1000;
+    case "30":
+      return 30 * 60 * 1000;
+    case "60":
+      return 60 * 60 * 1000;
+    case "120":
+      return 120 * 60 * 1000;
+    case "240":
+      return 240 * 60 * 1000;
+    case "D":
+      return 24 * 60 * 60 * 1000;
+    default:
+      return 60 * 1000; // Default to 1 minute
+  }
 }
