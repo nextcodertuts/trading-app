@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // components/TradingViewChart.tsx
 
@@ -42,8 +43,7 @@ export function TradingViewChart({
     if (!containerRef.current || !selectedSymbol) return;
 
     const container = containerRef.current;
-    const containerId =
-      "tradingview_" + Math.random().toString(36).substring(7);
+    const containerId = `tradingview_${selectedSymbol.id}`;
     container.id = containerId;
 
     const loadChart = () => {
@@ -64,10 +64,24 @@ export function TradingViewChart({
           datafeed: createCustomDatafeed(getCurrentPrice, getSymbolInfo),
           interval: interval,
           container_id: containerId,
-          library_path: "/static/charting_library/",
           locale: "en",
-          disabled_features: ["use_localstorage_for_settings"],
-          enabled_features: ["study_templates"],
+          disabled_features: [
+            "use_localstorage_for_settings",
+            "volume_force_overlay",
+            "left_toolbar",
+            "show_logo_on_all_charts",
+            "caption_buttons_text_if_possible",
+            "header_settings",
+            "header_chart_type",
+            "header_compare",
+            "header_undo_redo",
+            "header_screenshot",
+            "timeframes_toolbar",
+            "show_hide_button_in_legend",
+            "symbol_info",
+            "volume_force_overlay",
+          ],
+          enabled_features: ["hide_left_toolbar_by_default"],
           charts_storage_url: "https://saveload.tradingview.com",
           charts_storage_api_version: "1.1",
           client_id: "tradingview.com",
@@ -77,6 +91,16 @@ export function TradingViewChart({
           height: height,
           theme: theme === "dark" ? "Dark" : "Light",
           loading_screen: { backgroundColor: "#131722" },
+          overrides: {
+            "mainSeriesProperties.candleStyle.upColor": "#26a69a",
+            "mainSeriesProperties.candleStyle.downColor": "#ef5350",
+            "mainSeriesProperties.candleStyle.wickUpColor": "#26a69a",
+            "mainSeriesProperties.candleStyle.wickDownColor": "#ef5350",
+          },
+          studies_overrides: {
+            "volume.volume.color.0": "#ef5350",
+            "volume.volume.color.1": "#26a69a",
+          },
         };
 
         const tvWidget = new window.TradingView.widget(widgetOptions);
@@ -92,14 +116,10 @@ export function TradingViewChart({
       script.type = "text/javascript";
       script.src = "https://s3.tradingview.com/tv.js";
       script.async = true;
-      script.onload = () => {
-        // Small delay to ensure DOM is ready
-        setTimeout(loadChart, 100);
-      };
+      script.onload = loadChart;
       document.head.appendChild(script);
     } else {
-      // Small delay to ensure DOM is ready
-      setTimeout(loadChart, 100);
+      loadChart();
     }
 
     // Cleanup function
@@ -109,15 +129,7 @@ export function TradingViewChart({
         widgetRef.current = null;
       }
     };
-  }, [
-    interval,
-    theme,
-    height,
-    autosize,
-    selectedSymbol,
-    getCurrentPrice,
-    getSymbolInfo,
-  ]);
+  }, [selectedSymbol?.id, theme]); // Recreate chart when symbol ID or theme changes
 
   if (!selectedSymbol) {
     return <div>Please select a trading symbol...</div>;
@@ -126,7 +138,7 @@ export function TradingViewChart({
   return (
     <div
       ref={containerRef}
-      className="w-full h-full rounded-lg overflow-hidden border border-border"
+      className="w-full h-[97%] rounded-lg overflow-hidden border border-border"
     />
   );
 }
