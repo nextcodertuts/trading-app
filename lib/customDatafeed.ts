@@ -1,7 +1,4 @@
-/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// lib/customDatafeed.ts
-
 interface Bar {
   time: number;
   open: number;
@@ -23,6 +20,7 @@ interface SymbolInfo {
   type: string;
   supported_resolutions: string[];
   volume_precision: number;
+  id: number;
 }
 
 async function fetchHistoricalData(
@@ -40,12 +38,44 @@ async function fetchHistoricalData(
 
 export function createCustomDatafeed(
   getCurrentPrice: () => number | null,
-  getSymbolInfo: () => any
+  getSymbolInfo: () => SymbolInfo | null
 ) {
   let lastBar: Bar | null = null;
-  let subscribers: {
-    [key: string]: { callback: (bar: Bar) => void; interval: NodeJS.Timeout };
-  } = {};
+  // eslint-disable-next-line prefer-const
+  let subscribers: { [key: string]: (bar: Bar) => void } = {};
+
+  function updateRealtimeBar(symbolInfo: SymbolInfo, resolution: string) {
+    const currentPrice = getCurrentPrice();
+    if (currentPrice === null) return;
+
+    const currentTime = Math.floor(Date.now() / 1000);
+    const coeff = resolution === "D" ? 24 * 60 * 60 : parseInt(resolution) * 60;
+    const rounded = Math.floor(currentTime / coeff) * coeff;
+
+    let bar: Bar;
+
+    if (lastBar && lastBar.time === rounded) {
+      bar = {
+        ...lastBar,
+        high: Math.max(lastBar.high, currentPrice),
+        low: Math.min(lastBar.low, currentPrice),
+        close: currentPrice,
+      };
+    } else {
+      bar = {
+        time: rounded,
+        open: currentPrice,
+        high: currentPrice,
+        low: currentPrice,
+        close: currentPrice,
+        volume: 0,
+      };
+    }
+
+    lastBar = bar;
+
+    Object.values(subscribers).forEach((callback) => callback(bar));
+  }
 
   return {
     onReady: (callback: (configuration: any) => void) => {
@@ -71,7 +101,7 @@ export function createCustomDatafeed(
       onResultReadyCallback: (result: any[]) => void
     ) => {
       const symbolInfo = getSymbolInfo();
-      onResultReadyCallback([symbolInfo]);
+      onResultReadyCallback(symbolInfo ? [symbolInfo] : []);
     },
 
     resolveSymbol: (
@@ -81,26 +111,14 @@ export function createCustomDatafeed(
     ) => {
       const symbolInfo = getSymbolInfo();
       if (symbolInfo) {
-        onSymbolResolvedCallback({
-          name: symbolInfo.name,
-          displayName: symbolInfo.displayName || symbolInfo.name,
-          minmov: 1,
-          pricescale: 100,
-          timezone: "Etc/UTC",
-          session: "24x7",
-          has_intraday: true,
-          description: symbolInfo.displayName || symbolInfo.name,
-          type: "crypto",
-          supported_resolutions: ["1", "5", "15", "30", "60", "D"],
-          volume_precision: 8,
-        });
+        onSymbolResolvedCallback(symbolInfo);
       } else {
         onResolveErrorCallback("Symbol not found");
       }
     },
 
     getBars: async (
-      symbolInfo: any,
+      symbolInfo: SymbolInfo,
       resolution: string,
       periodParams: any,
       onHistoryCallback: (bars: Bar[], meta: { noData: boolean }) => void,
@@ -124,82 +142,21 @@ export function createCustomDatafeed(
     },
 
     subscribeBars: (
-      symbolInfo: any,
+      symbolInfo: SymbolInfo,
       resolution: string,
       onRealtimeCallback: (bar: Bar) => void,
       subscriberUID: string
     ) => {
-      if (subscribers[subscriberUID]) {
-        clearInterval(subscribers[subscriberUID].interval);
-      }
-
-      const intervalMs = getIntervalInMs(resolution);
-      const interval = setInterval(() => {
-        const currentPrice = getCurrentPrice();
-        if (currentPrice !== null && lastBar !== null) {
-          const currentTime = Math.floor(Date.now() / 1000) * 1000;
-          const barTime = Math.floor(currentTime / intervalMs) * intervalMs;
-
-          if (lastBar.time === barTime) {
-            // Update existing bar
-            lastBar.high = Math.max(lastBar.high, currentPrice);
-            lastBar.low = Math.min(lastBar.low, currentPrice);
-            lastBar.close = currentPrice;
-          } else {
-            // Create new bar
-            lastBar = {
-              time: barTime,
-              open: currentPrice,
-              high: currentPrice,
-              low: currentPrice,
-              close: currentPrice,
-              volume: 0,
-            };
-          }
-          onRealtimeCallback(lastBar);
-        }
-      }, 1000);
-
-      subscribers[subscriberUID] = {
-        callback: onRealtimeCallback,
-        interval: interval,
-      };
+      subscribers[subscriberUID] = onRealtimeCallback;
+      setInterval(() => updateRealtimeBar(symbolInfo, resolution), 1000);
     },
 
     unsubscribeBars: (subscriberUID: string) => {
-      if (subscribers[subscriberUID]) {
-        clearInterval(subscribers[subscriberUID].interval);
-        delete subscribers[subscriberUID];
-      }
+      delete subscribers[subscriberUID];
+    },
+
+    getServerTime: (callback: (serverTime: number) => void) => {
+      callback(Math.floor(Date.now() / 1000));
     },
   };
-}
-
-function getIntervalInMs(resolution: string): number {
-  switch (resolution) {
-    case "15S":
-      return 15 * 1000;
-    case "30S":
-      return 30 * 1000;
-    case "1":
-      return 60 * 1000;
-    case "3":
-      return 3 * 60 * 1000;
-    case "5":
-      return 5 * 60 * 1000;
-    case "15":
-      return 15 * 60 * 1000;
-    case "30":
-      return 30 * 60 * 1000;
-    case "60":
-      return 60 * 60 * 1000;
-    case "120":
-      return 120 * 60 * 1000;
-    case "240":
-      return 240 * 60 * 1000;
-    case "D":
-      return 24 * 60 * 60 * 1000;
-    default:
-      return 60 * 1000; // Default to 1 minute
-  }
 }

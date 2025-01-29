@@ -60,7 +60,7 @@ export function TradingViewChart({
 
       try {
         const widgetOptions = {
-          symbol: selectedSymbol.name,
+          symbol: selectedSymbol.binanceSymbol,
           datafeed: createCustomDatafeed(getCurrentPrice, getSymbolInfo),
           interval: interval,
           container_id: containerId,

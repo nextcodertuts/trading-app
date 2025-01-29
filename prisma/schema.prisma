@@ -64,8 +64,6 @@ model WalletTransaction {
   updatedAt   DateTime @updatedAt
 }
 
-// prisma/schema.prisma
-
 model Symbol {
   id                 Int               @id @default(autoincrement())
   name               String            @unique
@@ -79,17 +77,21 @@ model Symbol {
   volatility         Float             @default(1.0)
   bias               Float             @default(0)
   manipulationPercentage Float         @default(0.1)
+  minAmount          Float
+  maxAmount          Float
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   historicalPrices   HistoricalPrice[]
   orders             Order[]
 }
 
+
+
 model HistoricalPrice {
   id        Int      @id @default(autoincrement())
   symbolId  Int
   symbol    Symbol   @relation(fields: [symbolId], references: [id])
-  timestamp DateTime
+  timestamp Int
   open      Float
   high      Float
   low       Float

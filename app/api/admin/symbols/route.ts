@@ -13,7 +13,8 @@ async function isAdmin() {
 
 export async function POST(req: Request) {
   const admin = await isAdmin();
-  if (!admin) return;
+  if (!admin)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   try {
     const {
@@ -25,33 +26,39 @@ export async function POST(req: Request) {
       enabled,
       trend,
       volatility,
+      bias,
+      manipulationPercentage,
       minAmount,
       maxAmount,
     } = await req.json();
 
-    // Create default manipulation config
-    const manipulationConfig = {
-      trend: trend || "sideways",
-      volatility: volatility || 1.0,
-      bias: 0.02,
-      manipulationPercentage: 0.1,
+    // Remove spaces from sensitive properties
+    const sanitizedData = {
+      name: name.trim().replace(/\s+/g, ""),
+      displayName: displayName.trim(),
+      binanceSymbol: binanceSymbol.trim().replace(/\s+/g, ""),
+      currentPrice: Number.parseFloat(currentPrice),
+      manipulatedPrice: Number.parseFloat(currentPrice), // Initially same as current price
+      payout: Number.parseFloat(payout),
+      enabled,
+      trend: trend.trim().toLowerCase(),
+      volatility: Number.parseFloat(volatility),
+      bias: Number.parseFloat(bias),
+      manipulationPercentage: Number.parseFloat(manipulationPercentage),
+      minAmount: Number.parseFloat(minAmount),
+      maxAmount: Number.parseFloat(maxAmount),
     };
 
+    // Validate trend
+    if (!["up", "down", "sideways"].includes(sanitizedData.trend)) {
+      return NextResponse.json(
+        { error: "Invalid trend value" },
+        { status: 400 }
+      );
+    }
+
     const newSymbol = await prisma.symbol.create({
-      data: {
-        name,
-        displayName,
-        binanceSymbol,
-        currentPrice: parseFloat(currentPrice),
-        manipulatedPrice: parseFloat(currentPrice), // Initially same as current price
-        payout: parseFloat(payout),
-        enabled,
-        trend,
-        volatility: parseFloat(volatility),
-        minAmount: parseFloat(minAmount),
-        maxAmount: parseFloat(maxAmount),
-        manipulationConfig,
-      },
+      data: sanitizedData,
     });
 
     return NextResponse.json({ symbol: newSymbol });

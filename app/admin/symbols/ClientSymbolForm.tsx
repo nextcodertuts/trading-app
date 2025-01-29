@@ -31,6 +31,8 @@ export default function ClientSymbolForm({ initialSymbol = null }) {
       enabled: true,
       trend: "sideways",
       volatility: "1.0",
+      bias: "0",
+      manipulationPercentage: "0.1",
       minAmount: "10",
       maxAmount: "1000",
     }
@@ -82,6 +84,8 @@ export default function ClientSymbolForm({ initialSymbol = null }) {
           enabled: true,
           trend: "sideways",
           volatility: "1.0",
+          bias: "0",
+          manipulationPercentage: "0.1",
           minAmount: "10",
           maxAmount: "1000",
         });
@@ -231,6 +235,32 @@ export default function ClientSymbolForm({ initialSymbol = null }) {
           value={formData.volatility}
           onChange={(e) =>
             setFormData({ ...formData, volatility: e.target.value })
+          }
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="bias">Bias</Label>
+        <Input
+          id="bias"
+          type="number"
+          step="0.01"
+          value={formData.bias}
+          onChange={(e) => setFormData({ ...formData, bias: e.target.value })}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="manipulationPercentage">Manipulation Percentage</Label>
+        <Input
+          id="manipulationPercentage"
+          type="number"
+          step="0.01"
+          value={formData.manipulationPercentage}
+          onChange={(e) =>
+            setFormData({ ...formData, manipulationPercentage: e.target.value })
           }
           required
         />

@@ -37,7 +37,6 @@ export async function GET(
   }
 }
 
-// PUT: Update a symbol
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -56,6 +55,8 @@ export async function PUT(
       enabled,
       trend,
       volatility,
+      bias,
+      manipulationPercentage,
       minAmount,
       maxAmount,
     } = await req.json();
@@ -79,6 +80,8 @@ export async function PUT(
         enabled,
         trend,
         volatility: Number.parseFloat(volatility),
+        bias: Number.parseFloat(bias),
+        manipulationPercentage: Number.parseFloat(manipulationPercentage),
         minAmount: Number.parseFloat(minAmount),
         maxAmount: Number.parseFloat(maxAmount),
       },
@@ -92,7 +95,6 @@ export async function PUT(
   }
 }
 
-// DELETE: Delete a symbol
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -102,10 +104,10 @@ export async function DELETE(
   if (!admin) return;
 
   try {
-    await prisma.symbol.delete({
+    const deletedSymbol = await prisma.symbol.delete({
       where: { id: Number.parseInt(id) },
     });
-    return NextResponse.json({ message: "Symbol deleted successfully" });
+    return NextResponse.json({ symbol: deletedSymbol });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to delete symbol" },

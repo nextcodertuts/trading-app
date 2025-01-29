@@ -1,5 +1,4 @@
 // app/api/historical-data/route.ts
-
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -15,96 +14,91 @@ export async function GET(request: Request) {
   }
 
   try {
-    const fromDate = new Date(parseInt(from) * 1000);
-    const toDate = new Date(parseInt(to) * 1000);
-
-    let interval;
-    switch (resolution) {
-      case "15S":
-      case "30S":
-        interval = { seconds: parseInt(resolution) };
-        break;
-      case "1":
-        interval = { minutes: 1 };
-        break;
-      case "3":
-      case "5":
-      case "15":
-      case "30":
-        interval = { minutes: parseInt(resolution) };
-        break;
-      case "60":
-      case "120":
-      case "240":
-        interval = { hours: parseInt(resolution) / 60 };
-        break;
-      case "D":
-        interval = { days: 1 };
-        break;
-      default:
-        return NextResponse.json(
-          { error: "Invalid resolution" },
-          { status: 400 }
-        );
-    }
-
     const historicalData = await prisma.historicalPrice.findMany({
       where: {
         symbolId: parseInt(symbolId),
         timestamp: {
-          gte: fromDate,
-          lte: toDate,
+          gte: parseInt(from),
+          lte: parseInt(to),
         },
       },
       orderBy: { timestamp: "asc" },
     });
 
-    // Group and aggregate data based on the resolution
     const aggregatedData = [];
-    let currentCandle = null;
+    let currentIntervalStart: number | null = null;
+    let currentOpen: number | null = null;
+    let currentHigh = -Infinity;
+    let currentLow = Infinity;
+    let currentClose: number | null = null;
+    let currentVolume = 0;
+
+    const getIntervalStart = (timestamp: number): number => {
+      switch (resolution) {
+        case "15S":
+          return timestamp - (timestamp % 15);
+        case "30S":
+          return timestamp - (timestamp % 30);
+        case "1":
+          return timestamp - (timestamp % 60);
+        case "3":
+          return timestamp - (timestamp % 180);
+        case "5":
+          return timestamp - (timestamp % 300);
+        case "15":
+          return timestamp - (timestamp % 900);
+        case "30":
+          return timestamp - (timestamp % 1800);
+        case "60":
+          return timestamp - (timestamp % 3600);
+        case "D": {
+          const date = new Date(timestamp * 1000);
+          date.setUTCHours(0, 0, 0, 0);
+          return Math.floor(date.getTime() / 1000);
+        }
+        default:
+          return timestamp;
+      }
+    };
 
     for (const price of historicalData) {
-      const candleTime = new Date(price.timestamp);
-      candleTime.setSeconds(0, 0); // Reset seconds and milliseconds
+      const intervalStart = getIntervalStart(price.timestamp);
 
-      // Adjust the candle time based on the interval
-      if (interval.minutes) {
-        candleTime.setMinutes(
-          Math.floor(candleTime.getMinutes() / interval.minutes) *
-            interval.minutes
-        );
-      } else if (interval.hours) {
-        candleTime.setMinutes(0);
-        candleTime.setHours(
-          Math.floor(candleTime.getHours() / interval.hours) * interval.hours
-        );
-      } else if (interval.days) {
-        candleTime.setMinutes(0);
-        candleTime.setHours(0);
-      }
-
-      if (!currentCandle || currentCandle.time !== candleTime.getTime()) {
-        if (currentCandle) {
-          aggregatedData.push(currentCandle);
+      if (currentIntervalStart !== intervalStart) {
+        if (currentIntervalStart !== null) {
+          aggregatedData.push({
+            time: currentIntervalStart,
+            open: currentOpen!,
+            high: currentHigh,
+            low: currentLow,
+            close: currentClose!,
+            volume: currentVolume,
+          });
         }
-        currentCandle = {
-          time: candleTime.getTime(),
-          open: price.open,
-          high: price.high,
-          low: price.low,
-          close: price.close,
-          volume: price.volume,
-        };
+
+        currentIntervalStart = intervalStart;
+        currentOpen = price.close;
+        currentHigh = price.close;
+        currentLow = price.close;
+        currentClose = price.close;
+        currentVolume = price.volume;
       } else {
-        currentCandle.high = Math.max(currentCandle.high, price.high);
-        currentCandle.low = Math.min(currentCandle.low, price.low);
-        currentCandle.close = price.close;
-        currentCandle.volume += price.volume;
+        currentHigh = Math.max(currentHigh, price.close);
+        currentLow = Math.min(currentLow, price.close);
+        currentClose = price.close;
+        currentVolume += price.volume;
       }
     }
 
-    if (currentCandle) {
-      aggregatedData.push(currentCandle);
+    if (currentIntervalStart !== null) {
+      aggregatedData.push({
+        time: currentIntervalStart,
+        open: currentOpen!,
+        high: currentHigh,
+        low: currentLow,
+        close: currentClose!,
+        volume: currentVolume,
+      });
     }
 
     return NextResponse.json(aggregatedData);
