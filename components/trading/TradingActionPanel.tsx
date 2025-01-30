@@ -155,7 +155,7 @@ export function TradingActionPanel() {
     <Card className="">
       <CardContent className="space-y-2 p-2">
         <div className="space-y-2">
-          <div className="hidden md:flex space-x-1 items-center">
+          <div className="hidden md:block space-x-1 items-center">
             <label className="md:text-sm text-xs font-medium mb-1 block">
               Quick Amount
             </label>
