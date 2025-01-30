@@ -6,16 +6,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-const BINANCE_API_URL = "https://api.binance.com/api/v3";
+const BINANCE_API_URL = "https://eapi.binance.com/eapi/v1";
 
 async function fetchBinancePrice(symbol: string): Promise<number | null> {
   try {
-    const response = await fetch(
-      `${BINANCE_API_URL}/ticker/price?symbol=${symbol}`
-    );
+    const response = await fetch(`${BINANCE_API_URL}/ticker?symbol=${symbol}`);
     if (!response.ok) throw new Error("Failed to fetch Binance price");
     const data = await response.json();
-    return parseFloat(data.price);
+
+    return parseFloat(data[0].exercisePrice);
   } catch (error) {
     console.error("Error fetching Binance price:", error);
     return null;

@@ -2,7 +2,6 @@
 import { redirect } from "next/navigation";
 import { validateRequest } from "@/lib/auth";
 import SessionProvider from "./SessionProvider";
-import { TradingProvider } from "@/lib/trading-context";
 
 export default async function Layout({
   children,
@@ -17,9 +16,7 @@ export default async function Layout({
 
   return (
     <SessionProvider value={{ user, session }}>
-      <TradingProvider>
-        <div>{children}</div>
-      </TradingProvider>
+      <div>{children}</div>
     </SessionProvider>
   );
 }

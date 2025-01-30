@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { SMA, type Candle } from "@/lib/indicators";
 import { useSymbol } from "@/lib/symbol-context";
 import { useOrder } from "@/lib/order-context";
+import { SymbolSelector } from "./SymbolSelector";
 
 const timeFrameToSeconds: { [key: string]: number } = {
   "15s": 15,
@@ -33,7 +34,13 @@ const timeFrameToSeconds: { [key: string]: number } = {
   "5m": 300,
 };
 
-export function TradingViewChart({ symbolId }: { symbolId: number }) {
+export function TradingViewChart({
+  symbolId,
+  symbols,
+  currentSymbol,
+}: {
+  symbolId: number;
+}) {
   const { symbolData, setSymbolId } = useSymbol();
   const { orders } = useOrder();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -79,6 +86,15 @@ export function TradingViewChart({ symbolId }: { symbolId: number }) {
   useEffect(() => {
     if (!chartContainerRef.current || !symbolId) return;
 
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight,
+        });
+      }
+    };
+
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
@@ -89,7 +105,7 @@ export function TradingViewChart({ symbolId }: { symbolId: number }) {
         horzLines: { color: "#ddd" },
       },
       width: chartContainerRef.current.clientWidth,
-      height: 750,
+      height: chartContainerRef.current.clientHeight,
       timeScale: {
         timeVisible: true,
         secondsVisible: timeFrame === "15s" || timeFrame === "30s",
@@ -107,14 +123,6 @@ export function TradingViewChart({ symbolId }: { symbolId: number }) {
 
     fetchHistoricalData();
     setLoading(false);
-
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-      }
-    };
 
     window.addEventListener("resize", handleResize);
 
@@ -219,11 +227,12 @@ export function TradingViewChart({ symbolId }: { symbolId: number }) {
   }
 
   return (
-    <div className="w-full h-[97%] rounded-lg overflow-hidden border border-border p-1">
-      <div className="mb-4 flex items-center space-x-4">
+    <div className="w-full h-full rounded-lg overflow-hidden border border-border p-1 flex flex-col">
+      <div className="flex items-start gap-2 overflow-x-auto">
+        <SymbolSelector symbols={symbols} currentSymbol={currentSymbol} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-fit px-1">
+            <Button variant="outline" className="w-fit p-1">
               {timeFrame} <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -259,7 +268,7 @@ export function TradingViewChart({ symbolId }: { symbolId: number }) {
         </div>
       </div>
       {loading ? <p>Loading chart...</p> : null}
-      <div ref={chartContainerRef} />
+      <div ref={chartContainerRef} className="flex-grow border rounded-sm" />
     </div>
   );
 }

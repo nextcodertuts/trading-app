@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -65,13 +65,9 @@ export function TradingActionPanel() {
       return response.json();
     },
     onMutate: async (newOrder) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["orders"] });
-
-      // Snapshot the previous value
       const previousOrders = queryClient.getQueryData(["orders"]);
 
-      // Optimistically update orders
       queryClient.setQueryData(["orders"], (old: any) => ({
         ...old,
         orders: [
@@ -85,7 +81,6 @@ export function TradingActionPanel() {
         ],
       }));
 
-      // Add to local order context for immediate UI update
       addOrder({
         id: Date.now().toString(),
         symbolId: newOrder.symbolId,
@@ -98,7 +93,6 @@ export function TradingActionPanel() {
       return { previousOrders };
     },
     onError: (err, newOrder, context) => {
-      // Revert back to the previous state if there's an error
       queryClient.setQueryData(["orders"], context?.previousOrders);
       toast({
         title: "Error",
@@ -167,13 +161,14 @@ export function TradingActionPanel() {
             <label className="text-sm font-medium mb-1 block">
               Quick Amount
             </label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {predefinedAmounts.map((amount) => (
                 <Button
                   key={amount}
                   variant="outline"
                   size="sm"
                   onClick={() => handlePredefinedAmount(amount)}
+                  className="w-full"
                 >
                   ${amount}
                 </Button>
@@ -216,18 +211,18 @@ export function TradingActionPanel() {
           <div className="grid grid-cols-2 gap-4 mt-6">
             <Button
               onClick={() => placeOrder("up")}
-              className="py-6 text-lg font-semibold bg-green-500 hover:bg-green-600 text-white"
+              className="py-4 sm:py-6 text-base sm:text-lg font-semibold bg-green-500 hover:bg-green-600 text-white"
               disabled={!symbolData || placeOrderMutation.isPending}
             >
-              <ArrowUp className="mr-2 h-5 w-5" />
+              <ArrowUp className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Up
             </Button>
             <Button
               onClick={() => placeOrder("down")}
-              className="py-6 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white"
+              className="py-4 sm:py-6 text-base sm:text-lg font-semibold bg-red-500 hover:bg-red-600 text-white"
               disabled={!symbolData || placeOrderMutation.isPending}
             >
-              <ArrowDown className="mr-2 h-5 w-5" />
+              <ArrowDown className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Down
             </Button>
           </div>
