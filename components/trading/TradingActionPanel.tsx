@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-//@ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useSymbol } from "@/lib/symbol-context";
 import { useOrder } from "@/lib/order-context";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -31,13 +32,87 @@ const timeOptions = [
 
 const predefinedAmounts = [10, 50, 100, 500, 1000];
 
+interface OrderRequest {
+  symbolId: number;
+  amount: number;
+  direction: "up" | "down";
+  duration: number;
+}
+
 export function TradingActionPanel() {
   const { toast } = useToast();
   const { symbolData } = useSymbol();
   const { addOrder } = useOrder();
+  const queryClient = useQueryClient();
   const [tradeDetails, setTradeDetails] = useState({
     amount: "10",
     time: "60",
+  });
+
+  const placeOrderMutation = useMutation({
+    mutationFn: async (orderData: OrderRequest) => {
+      const response = await fetch("/api/trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to place order");
+      }
+
+      return response.json();
+    },
+    onMutate: async (newOrder) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["orders"] });
+
+      // Snapshot the previous value
+      const previousOrders = queryClient.getQueryData(["orders"]);
+
+      // Optimistically update orders
+      queryClient.setQueryData(["orders"], (old: any) => ({
+        ...old,
+        orders: [
+          ...(old?.orders || []),
+          {
+            id: Date.now().toString(),
+            ...newOrder,
+            status: "pending",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }));
+
+      // Add to local order context for immediate UI update
+      addOrder({
+        id: Date.now().toString(),
+        symbolId: newOrder.symbolId,
+        price: symbolData?.manipulatedPrice || 0,
+        direction: newOrder.direction,
+        timestamp: Math.floor(Date.now() / 1000),
+        expirationTime: Math.floor(Date.now() / 1000) + newOrder.duration,
+      });
+
+      return { previousOrders };
+    },
+    onError: (err, newOrder, context) => {
+      // Revert back to the previous state if there's an error
+      queryClient.setQueryData(["orders"], context?.previousOrders);
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Order placed successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +128,7 @@ export function TradingActionPanel() {
     setTradeDetails({ ...tradeDetails, amount: amount.toString() });
   };
 
-  const placeOrder = async (direction: "up" | "down") => {
+  const placeOrder = (direction: "up" | "down") => {
     if (!symbolData) {
       toast({
         title: "Error",
@@ -73,45 +148,12 @@ export function TradingActionPanel() {
       return;
     }
 
-    try {
-      const response = await fetch("/api/trades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symbolId: symbolData.id,
-          amount: Number(tradeDetails.amount),
-          direction,
-          duration: Number(tradeDetails.time),
-        }),
-      });
-
-      if (response.ok) {
-        const orderData = await response.json();
-        addOrder({
-          id: orderData.order.id,
-          symbolId: symbolData.id,
-          price: symbolData.manipulatedPrice,
-          direction,
-          timestamp: Math.floor(Date.now() / 1000),
-        });
-        toast({
-          title: "Success",
-          description: `Order placed successfully! Direction: ${direction.toUpperCase()}`,
-        });
-        setTradeDetails({ ...tradeDetails, amount: "" });
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to place order");
-      }
-    } catch (error) {
-      console.error("Error placing order:", error);
-      toast({
-        title: "Error",
-        description:
-          error.message || "Failed to place order. Please try again.",
-        variant: "destructive",
-      });
-    }
+    placeOrderMutation.mutate({
+      symbolId: symbolData.id,
+      amount: Number(tradeDetails.amount),
+      direction,
+      duration: Number(tradeDetails.time),
+    });
   };
 
   return (
@@ -175,7 +217,7 @@ export function TradingActionPanel() {
             <Button
               onClick={() => placeOrder("up")}
               className="py-6 text-lg font-semibold bg-green-500 hover:bg-green-600 text-white"
-              disabled={!symbolData}
+              disabled={!symbolData || placeOrderMutation.isPending}
             >
               <ArrowUp className="mr-2 h-5 w-5" />
               Up
@@ -183,7 +225,7 @@ export function TradingActionPanel() {
             <Button
               onClick={() => placeOrder("down")}
               className="py-6 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white"
-              disabled={!symbolData}
+              disabled={!symbolData || placeOrderMutation.isPending}
             >
               <ArrowDown className="mr-2 h-5 w-5" />
               Down

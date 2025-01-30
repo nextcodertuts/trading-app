@@ -1,124 +1,126 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ArrowUp, ArrowDown } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface Trade {
   id: number;
   symbolId: number;
+  symbol: { name: string };
   amount: number;
-  direction: string;
+  direction: "up" | "down";
   entryPrice: number;
   exitPrice: number | null;
-  outcome: string | null;
+  outcome: "win" | "loss" | null;
   expiresAt: string;
   createdAt: string;
-  profitLoss: number | null;
 }
 
 export function TradeHistory() {
-  const [openTrades, setOpenTrades] = useState<Trade[]>([]);
-  const [closedTrades, setClosedTrades] = useState<Trade[]>([]);
+  const { data: openTrades } = useQuery({
+    queryKey: ["orders", "open"],
+    queryFn: async () => {
+      const response = await fetch("/api/orders?status=open");
+      if (!response.ok) throw new Error("Failed to fetch open trades");
+      const data = await response.json();
+      return data.orders;
+    },
+    refetchInterval: 1000,
+  });
 
-  useEffect(() => {
-    const fetchTrades = async () => {
-      try {
-        const response = await fetch("/api/trades");
-        const data = await response.json();
-        setOpenTrades(data.openTrades);
-        setClosedTrades(data.closedTrades);
-      } catch (error) {
-        console.error("Error fetching trades:", error);
-      }
-    };
-
-    fetchTrades();
-    const interval = setInterval(fetchTrades, 5000); // Refresh every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
+  const { data: closedTrades } = useQuery({
+    queryKey: ["orders", "historical"],
+    queryFn: async () => {
+      const response = await fetch("/api/orders?status=historical");
+      if (!response.ok) throw new Error("Failed to fetch trades");
+      const data = await response.json();
+      return data.orders;
+    },
+    refetchInterval: 5000,
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Open Trades</CardTitle>
+          <CardTitle className="text-lg">Open Trades</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Direction</TableHead>
-                <TableHead>Entry Price</TableHead>
-                <TableHead>Expires At</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {openTrades.map((trade) => (
-                <TableRow key={trade.id}>
-                  <TableCell>{trade.symbolId}</TableCell>
-                  <TableCell>${trade.amount.toFixed(2)}</TableCell>
-                  <TableCell>{trade.direction}</TableCell>
-                  <TableCell>${trade.entryPrice.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {new Date(trade.expiresAt).toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="p-0">
+          <div className="max-h-[300px] overflow-y-auto">
+            {openTrades?.map((trade: Trade) => (
+              <div
+                key={trade.id}
+                className="flex items-center justify-between p-3 border-b hover:bg-accent/50 transition-colors"
+              >
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{trade.symbol.name}</span>
+                    {trade.direction === "up" ? (
+                      <ArrowUp className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    Entry: ${trade.entryPrice.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="font-medium">${trade.amount}</span>
+                  <Badge variant="secondary">ACTIVE</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Trade History</CardTitle>
+          <CardTitle className="text-lg">Trade History</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Direction</TableHead>
-                <TableHead>Entry Price</TableHead>
-                <TableHead>Exit Price</TableHead>
-                <TableHead>Outcome</TableHead>
-                <TableHead>Profit/Loss</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {closedTrades.map((trade) => (
-                <TableRow key={trade.id}>
-                  <TableCell>{trade.symbolId}</TableCell>
-                  <TableCell>${trade.amount.toFixed(2)}</TableCell>
-                  <TableCell>{trade.direction}</TableCell>
-                  <TableCell>${trade.entryPrice.toFixed(2)}</TableCell>
-                  <TableCell>${trade.exitPrice?.toFixed(2) || "-"}</TableCell>
-                  <TableCell>{trade.outcome}</TableCell>
-                  <TableCell
-                    className={
-                      trade.profitLoss && trade.profitLoss > 0
-                        ? "text-green-500"
-                        : "text-red-500"
+        <CardContent className="p-0">
+          <div className="max-h-[300px] overflow-y-auto">
+            {closedTrades?.map((trade: Trade) => (
+              <div
+                key={trade.id}
+                className="flex items-center justify-between p-3 border-b hover:bg-accent/50 transition-colors"
+              >
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{trade.symbol.name}</span>
+                    {trade.direction === "up" ? (
+                      <ArrowUp className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(trade.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="font-medium">${trade.amount}</span>
+                  <Badge
+                    variant={
+                      trade.outcome === "win"
+                        ? "success"
+                        : trade.outcome === "loss"
+                        ? "destructive"
+                        : "secondary"
                     }
                   >
-                    ${trade.profitLoss?.toFixed(2) || "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    {trade.outcome?.toUpperCase() || "PENDING"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

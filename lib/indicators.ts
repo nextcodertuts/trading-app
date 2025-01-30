@@ -4,6 +4,8 @@
 import { type ISeriesApi, LineStyle } from "lightweight-charts";
 
 export interface Candle {
+  volume: any;
+  volume: any;
   time: number;
   open: number;
   high: number;
