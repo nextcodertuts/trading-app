@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 
 const timeOptions = [
   { value: "5", label: "5s" },
@@ -151,67 +152,71 @@ export function TradingActionPanel() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Place Trade</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">
+    <Card className="">
+      <CardContent className="space-y-2 p-2">
+        <div className="space-y-2">
+          <div className="hidden md:flex space-x-1 items-center">
+            <label className="md:text-sm text-xs font-medium mb-1 block">
               Quick Amount
             </label>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {predefinedAmounts.map((amount) => (
-                <Button
-                  key={amount}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePredefinedAmount(amount)}
-                  className="w-full"
-                >
-                  ${amount}
-                </Button>
-              ))}
+            <ScrollArea className="w-96 whitespace-nowrap">
+              <div className="flex w-max space-x-1 ">
+                {predefinedAmounts.map((amount) => (
+                  <Button
+                    key={amount}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePredefinedAmount(amount)}
+                    className="w-full "
+                  >
+                    ${amount}
+                  </Button>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
+            <div>
+              <label className="md:text-sm text-xs font-medium block">
+                Custom Amount
+              </label>
+              <Input
+                name="amount"
+                type="number"
+                value={tradeDetails.amount}
+                onChange={handleInputChange}
+                placeholder="Enter trade amount"
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="md:text-sm text-xs font-medium block">
+                Expiry Time
+              </label>
+              <Select
+                onValueChange={handleTimeChange}
+                value={tradeDetails.time}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Custom Amount
-            </label>
-            <Input
-              name="amount"
-              type="number"
-              value={tradeDetails.amount}
-              onChange={handleInputChange}
-              placeholder="Enter trade amount"
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Expiry Time
-            </label>
-            <Select onValueChange={handleTimeChange} value={tradeDetails.time}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select time" />
-              </SelectTrigger>
-              <SelectContent>
-                {timeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-4 mt-6">
             <Button
               onClick={() => placeOrder("up")}
-              className="py-4 sm:py-6 text-base sm:text-lg font-semibold bg-green-500 hover:bg-green-600 text-white"
+              className="py-4 sm:py-6 text-base  font-semibold bg-green-500 hover:bg-green-600 text-white"
               disabled={!symbolData || placeOrderMutation.isPending}
             >
               <ArrowUp className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
@@ -219,7 +224,7 @@ export function TradingActionPanel() {
             </Button>
             <Button
               onClick={() => placeOrder("down")}
-              className="py-4 sm:py-6 text-base sm:text-lg font-semibold bg-red-500 hover:bg-red-600 text-white"
+              className="py-4 sm:py-6 text-base  font-semibold bg-red-500 hover:bg-red-600 text-white"
               disabled={!symbolData || placeOrderMutation.isPending}
             >
               <ArrowDown className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />

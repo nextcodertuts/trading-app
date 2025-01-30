@@ -9,7 +9,6 @@ import { TradingActionPanel } from "@/components/trading/TradingActionPanel";
 import { TradeHistory } from "@/components/trading/TradeHistory";
 import { SymbolProvider } from "@/lib/symbol-context";
 import { OrderProvider } from "@/lib/order-context";
-import { Providers } from "@/app/providers";
 
 export async function generateStaticParams() {
   const symbols = await prisma.symbol.findMany({
@@ -48,42 +47,41 @@ export default async function TradingPage({
   });
 
   return (
-    <Providers>
-      <div className="flex h-screen bg-background">
-        <main className="flex-1 p-4 overflow-hidden">
-          <SymbolProvider>
-            <OrderProvider>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:h-full relative">
-                {/* Chart Section */}
-                <section className="lg:col-span-10 relative h-full flex flex-col">
-                  <div className="flex-grow">
-                    <Suspense fallback={<div>Loading chart...</div>}>
-                      <TradingViewChart
-                        symbols={symbols}
-                        currentSymbol={currentSymbol}
-                        symbolId={currentSymbol.id}
-                      />
-                    </Suspense>
-                  </div>
-                </section>
+    <div className="flex h-[calc(100vh-3.5rem)] bg-background">
+      <main className="flex-1 p-2 overflow-hidden">
+        <SymbolProvider>
+          <OrderProvider>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:h-[98%] relative">
+              {/* Chart Section */}
+              <section className="lg:col-span-10 relative md:h-full h-[78vh] flex flex-col">
+                <div className="flex-grow">
+                  <Suspense fallback={<div>Loading chart...</div>}>
+                    <TradingViewChart
+                      symbols={symbols}
+                      currentSymbol={currentSymbol}
+                      symbolId={currentSymbol.id}
+                    />
+                  </Suspense>
+                </div>
+              </section>
 
-                {/* Trading Panel Section */}
-                <section className="lg:col-span-2 space-y-4 overflow-y-auto">
-                  <div className="space-y-4">
-                    <Suspense fallback={<div>Loading trading panel...</div>}>
-                      <TradingActionPanel />
-                    </Suspense>
-
+              {/* Trading Panel Section */}
+              <section className="lg:col-span-2 md:h-[98%] ">
+                <div className="space-y-4 h-full md:flex md:flex-col md:justify-between">
+                  <Suspense fallback={<div>Loading trading panel...</div>}>
+                    <TradingActionPanel />
+                  </Suspense>
+                  <div className="hidden md:block">
                     <Suspense fallback={<div>Loading trade history...</div>}>
                       <TradeHistory />
                     </Suspense>
                   </div>
-                </section>
-              </div>
-            </OrderProvider>
-          </SymbolProvider>
-        </main>
-      </div>
-    </Providers>
+                </div>
+              </section>
+            </div>
+          </OrderProvider>
+        </SymbolProvider>
+      </main>
+    </div>
   );
 }
