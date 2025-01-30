@@ -84,7 +84,7 @@ export function TradingViewChart() {
         horzLines: { color: "#ddd" },
       },
       width: chartContainerRef.current.clientWidth,
-      height: 750,
+      height: 850,
       timeScale: {
         timeVisible: true,
         secondsVisible: timeFrame === "15s" || timeFrame === "30s",

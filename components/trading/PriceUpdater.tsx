@@ -24,7 +24,7 @@ export function PriceUpdater({ symbolId }: { symbolId: number }) {
     fetchPrice();
     const interval = setInterval(fetchPrice, 1000);
     return () => clearInterval(interval);
-  }, [symbolId]);
+  }, [symbolId, price]); // Added price to dependencies
 
   const priceDirection =
     prevPrice !== null ? (price! > prevPrice ? "up" : "down") : null;

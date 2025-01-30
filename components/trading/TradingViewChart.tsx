@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable react-hooks/exhaustive-deps */
-// @ts-nocheck
+//@ts-nocheck
 "use client";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   createChart,
@@ -10,7 +10,6 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { useTrading } from "@/lib/trading-context";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +22,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SMA, type Candle } from "@/lib/indicators";
+import { useSymbol } from "@/lib/symbol-context";
+import { useOrder } from "@/lib/order-context";
 
 const timeFrameToSeconds: { [key: string]: number } = {
   "15s": 15,
@@ -32,9 +33,10 @@ const timeFrameToSeconds: { [key: string]: number } = {
   "5m": 300,
 };
 
-export function TradingViewChart() {
+export function TradingViewChart({ symbolId }: { symbolId: number }) {
+  const { symbolData, setSymbolId } = useSymbol();
+  const { orders } = useOrder();
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const { selectedSymbol, manipulatedPrice } = useTrading();
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -42,37 +44,40 @@ export function TradingViewChart() {
   const [timeFrame, setTimeFrame] = useState<string>("1m");
   const [showSMA, setShowSMA] = useState(false);
   const [smaPeriod, setSmaPeriod] = useState(14);
+  const [historicalData, setHistoricalData] = useState<Candle[]>([]);
   const lastCandleRef = useRef<Candle | null>(null);
 
+  useEffect(() => {
+    setSymbolId(symbolId);
+  }, [symbolId, setSymbolId]);
+
   const fetchHistoricalData = useCallback(async () => {
-    if (!selectedSymbol) return;
-    setLoading(true);
+    if (!symbolId) return;
     try {
       const response = await fetch(
-        `/api/historical-data?symbolId=${selectedSymbol.id}&resolution=${timeFrame}`
+        `/api/historical-data?symbolId=${symbolId}&resolution=${timeFrame}`
       );
       const data = await response.json();
-      if (seriesRef.current) {
-        seriesRef.current.setData(data);
-        if (data.length > 0) {
-          lastCandleRef.current = data[data.length - 1];
-        }
-        updateSMA(data);
+      setHistoricalData(data);
+      if (data.length > 0) {
+        lastCandleRef.current = data[data.length - 1];
       }
     } catch (error) {
       console.error("Error loading historical data:", error);
     }
-    setLoading(false);
-  }, [selectedSymbol, timeFrame]);
+  }, [symbolId, timeFrame]);
 
-  const updateSMA = (data: Candle[]) => {
-    if (showSMA && smaSeriesRef.current) {
-      SMA.update(smaSeriesRef.current, data, smaPeriod);
-    }
-  };
+  const updateSMA = useCallback(
+    (data: Candle[]) => {
+      if (!smaSeriesRef.current || !showSMA) return;
+      const smaData = SMA(data, smaPeriod);
+      smaSeriesRef.current.setData(smaData);
+    },
+    [smaPeriod, showSMA]
+  );
 
   useEffect(() => {
-    if (!chartContainerRef.current || !selectedSymbol) return;
+    if (!chartContainerRef.current || !symbolId) return;
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -95,15 +100,13 @@ export function TradingViewChart() {
     chartRef.current = chart;
     seriesRef.current = candlestickSeries;
 
-    smaSeriesRef.current = SMA.addToChart(
-      chart,
-      showSMA,
-      "rgba(4, 111, 232, 1)",
-      2,
-      smaPeriod
-    );
+    smaSeriesRef.current = chart.addLineSeries({
+      color: "rgba(4, 111, 232, 1)",
+      lineWidth: 2,
+    });
 
     fetchHistoricalData();
+    setLoading(false);
 
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -119,52 +122,79 @@ export function TradingViewChart() {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [selectedSymbol, timeFrame, fetchHistoricalData, smaPeriod, showSMA]);
+  }, [symbolId, timeFrame, fetchHistoricalData]);
 
   useEffect(() => {
-    if (!seriesRef.current || !manipulatedPrice || !lastCandleRef.current)
-      return;
-
-    const currentTime = Math.floor(Date.now() / 1000);
-    const timeFrameSeconds = timeFrameToSeconds[timeFrame];
-    const currentCandleTime =
-      Math.floor(currentTime / timeFrameSeconds) * timeFrameSeconds;
-
-    if (currentCandleTime === lastCandleRef.current.time) {
-      // Update the current candle
-      lastCandleRef.current.high = Math.max(
-        lastCandleRef.current.high,
-        manipulatedPrice
-      );
-      lastCandleRef.current.low = Math.min(
-        lastCandleRef.current.low,
-        manipulatedPrice
-      );
-      lastCandleRef.current.close = manipulatedPrice;
-    } else {
-      // Create a new candle
-      const newCandle: Candle = {
-        time: currentCandleTime as UTCTimestamp,
-        open: lastCandleRef.current.close,
-        high: manipulatedPrice,
-        low: manipulatedPrice,
-        close: manipulatedPrice,
-      };
-      seriesRef.current.update(newCandle);
-      lastCandleRef.current = newCandle;
+    if (seriesRef.current && historicalData.length > 0) {
+      seriesRef.current.setData(historicalData);
+      updateSMA(historicalData);
     }
+  }, [historicalData, updateSMA]);
 
-    seriesRef.current.update(lastCandleRef.current);
+  useEffect(() => {
+    if (!seriesRef.current || !symbolData || !lastCandleRef.current) return;
 
-    // Update SMA
-    if (showSMA && smaSeriesRef.current) {
-      const data = seriesRef.current.data() as Candle[];
-      SMA.update(smaSeriesRef.current, data, smaPeriod);
-    }
-  }, [manipulatedPrice, timeFrame, showSMA, smaPeriod]);
+    const updateChart = () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeFrameSeconds = timeFrameToSeconds[timeFrame];
+      const currentCandleTime =
+        Math.floor(currentTime / timeFrameSeconds) * timeFrameSeconds;
+
+      if (currentCandleTime === lastCandleRef.current.time) {
+        // Update the current candle
+        lastCandleRef.current.high = Math.max(
+          lastCandleRef.current.high,
+          symbolData.manipulatedPrice
+        );
+        lastCandleRef.current.low = Math.min(
+          lastCandleRef.current.low,
+          symbolData.manipulatedPrice
+        );
+        lastCandleRef.current.close = symbolData.manipulatedPrice;
+      } else {
+        // Create a new candle
+        const newCandle: Candle = {
+          time: currentCandleTime as UTCTimestamp,
+          open: lastCandleRef.current.close,
+          high: symbolData.manipulatedPrice,
+          low: symbolData.manipulatedPrice,
+          close: symbolData.manipulatedPrice,
+          volume: 0, // We don't have real-time volume data
+        };
+        seriesRef.current.update(newCandle);
+        lastCandleRef.current = newCandle;
+      }
+
+      seriesRef.current.update(lastCandleRef.current);
+
+      // Update SMA
+      updateSMA([...historicalData, lastCandleRef.current]);
+    };
+
+    const intervalId = setInterval(updateChart, 1000); // Update every second
+
+    return () => clearInterval(intervalId);
+  }, [symbolData, timeFrame, updateSMA, historicalData]);
+
+  useEffect(() => {
+    if (!chartRef.current || !seriesRef.current || !orders.length) return;
+
+    const markers = orders
+      .filter((order) => order.symbolId === symbolId)
+      .map((order) => ({
+        time: order.timestamp as UTCTimestamp,
+        position: order.direction === "up" ? "belowBar" : "aboveBar",
+        color: order.direction === "up" ? "#2196F3" : "#FF4136",
+        shape: "arrowUp",
+        text: `${order.direction.toUpperCase()} @ ${order.price.toFixed(2)}`,
+      }));
+
+    seriesRef.current.setMarkers(markers);
+  }, [orders, symbolId]);
 
   const handleTimeFrameChange = (newTimeFrame: string) => {
     setTimeFrame(newTimeFrame);
+    fetchHistoricalData();
   };
 
   const toggleSMA = () => {
@@ -180,14 +210,11 @@ export function TradingViewChart() {
     const newPeriod = Number.parseInt(event.target.value, 10);
     if (!isNaN(newPeriod) && newPeriod > 0) {
       setSmaPeriod(newPeriod);
-      if (smaSeriesRef.current) {
-        smaSeriesRef.current.applyOptions({ title: `SMA (${newPeriod})` });
-      }
-      fetchHistoricalData();
+      updateSMA(historicalData);
     }
   };
 
-  if (!selectedSymbol) {
+  if (!symbolId) {
     return <div>Please select a trading symbol...</div>;
   }
 

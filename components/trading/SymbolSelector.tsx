@@ -1,15 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface Symbol {
   id: number;
   name: string;
+  displayName: string;
   payout: number;
+  binanceSymbol: string;
 }
 
 export function SymbolSelector({
@@ -19,10 +17,8 @@ export function SymbolSelector({
   symbols: Symbol[];
   currentSymbol: Symbol;
 }) {
-  const pathname = usePathname();
-
   return (
-    <div className="flex gap-2 overflow-x-auto rounded-lg z-50">
+    <div className="flex gap-2 overflow-x-auto rounded-lg z-50 mb-2">
       {symbols.map((symbol) => (
         <Button
           key={symbol.id}
@@ -34,8 +30,8 @@ export function SymbolSelector({
           )}
           asChild
         >
-          <Link href={`/trading/${symbol.name}`}>
-            {symbol.name}
+          <Link href={`/trading/${symbol.binanceSymbol}`}>
+            {symbol.displayName}
             <span className="ml-2 text-xs">({symbol.payout}%)</span>
           </Link>
         </Button>

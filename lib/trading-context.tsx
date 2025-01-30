@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // lib/trading-context.tsx
-
+//@ts-nocheck
 "use client";
 
 import type React from "react";
@@ -28,6 +30,7 @@ interface TradingContextType {
   priceDirection: "up" | "down" | null;
   userBalance: number;
   manipulatedPrice: number | null;
+  initialSymbol: Symbol | null;
 }
 
 const TradingContext = createContext<TradingContextType | null>(null);

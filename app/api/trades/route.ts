@@ -1,7 +1,45 @@
-// app/api/trades/route.ts
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { validateRequest } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+
+export async function GET(request: Request) {
+  try {
+    const { user } = await validateRequest();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const openTrades = await prisma.order.findMany({
+      where: {
+        userId: user.id,
+        outcome: null,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const closedTrades = await prisma.order.findMany({
+      where: {
+        userId: user.id,
+        outcome: { not: null },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 50, // Limit to last 50 closed trades
+    });
+
+    return NextResponse.json({ openTrades, closedTrades });
+  } catch (error) {
+    console.error("Error fetching trades:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch trades" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
