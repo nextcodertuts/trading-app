@@ -257,7 +257,7 @@ export function TradingViewChart({
 
   return (
     <div className="w-full relative md:h-full h-[75vh] rounded-sm overflow-hidden border border-border p-1 flex flex-col">
-      <div className="flex items-start gap-2 overflow-x-auto h-12 md:static absolute top-0 p-1 left-0 z-50">
+      <div className="flex items-start gap-2 h-12 md:static absolute top-0 p-1 left-0 z-50">
         <SymbolSelector symbols={symbols} currentSymbol={currentSymbol} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
