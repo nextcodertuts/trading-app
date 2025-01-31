@@ -63,7 +63,7 @@ export function WithdrawalForm() {
           upiId: "",
           amount: "",
         });
-        router.push("/user");
+        router.push("/trading/1");
       } else {
         toast({
           title: "Error",
@@ -82,7 +82,7 @@ export function WithdrawalForm() {
   };
 
   return (
-    <Card className="w-full max-w-lg max-h-fit">
+    <Card className="p-0">
       <CardHeader>
         <CardTitle className="text-center text-2xl font-bold">
           Withdraw Funds

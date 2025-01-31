@@ -92,7 +92,7 @@ export default function DepositPage() {
             "Deposit submitted successfully. Awaiting admin approval.",
         });
         setIsDialogOpen(false);
-        router.push("/user");
+        router.push("/trading/1");
       } else {
         toast({
           title: "Error",

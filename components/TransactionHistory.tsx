@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -15,32 +13,45 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
+interface Transaction {
+  id: number;
+  type: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  details?: string;
+}
+
 export function TransactionHistory() {
   const { toast } = useToast();
-  const [transactions, setTransactions] = useState({
-    deposits: [],
-    withdrawals: [],
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTab, setSelectedTab] = useState("deposits");
 
-  const fetchTransactions = async () => {
-    try {
-      const response = await fetch("/api/wallet-transaction");
-      const data = await response.json();
-      setTransactions(data);
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch transaction history.",
-        variant: "destructive",
-      });
-    }
-  };
-
   useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await fetch("/api/wallet-transaction");
+        if (!response.ok) {
+          throw new Error("Failed to fetch transactions");
+        }
+        const data = await response.json();
+        setTransactions(data || []);
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch transaction history.",
+          variant: "destructive",
+        });
+      }
+    };
+
     fetchTransactions();
-  }, []);
+  }, [toast]);
+
+  const filteredTransactions = transactions.filter(
+    (transaction) => transaction.type === selectedTab.slice(0, -1)
+  );
 
   return (
     <Card className="w-full max-w-4xl">
@@ -56,18 +67,16 @@ export function TransactionHistory() {
             <TabsTrigger value="withdrawals">Withdrawal History</TabsTrigger>
           </TabsList>
 
-          {/* Deposit History */}
           <TabsContent value="deposits">
             <TransactionTable
-              transactions={transactions.deposits}
+              transactions={filteredTransactions}
               type="deposit"
             />
           </TabsContent>
 
-          {/* Withdrawal History */}
           <TabsContent value="withdrawals">
             <TransactionTable
-              transactions={transactions.withdrawals}
+              transactions={filteredTransactions}
               type="withdrawal"
             />
           </TabsContent>
@@ -77,12 +86,11 @@ export function TransactionHistory() {
   );
 }
 
-// Transaction Table Component
 function TransactionTable({
   transactions,
   type,
 }: {
-  transactions: any[];
+  transactions: Transaction[];
   type: string;
 }) {
   return (
@@ -96,9 +104,9 @@ function TransactionTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {transactions.length > 0 ? (
-          transactions.map((transaction, index) => (
-            <TableRow key={index}>
+        {transactions && transactions.length > 0 ? (
+          transactions.map((transaction) => (
+            <TableRow key={transaction.id}>
               <TableCell>
                 {new Date(transaction.createdAt).toLocaleDateString()}
               </TableCell>
