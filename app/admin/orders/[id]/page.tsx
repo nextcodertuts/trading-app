@@ -6,10 +6,11 @@ import Link from "next/link";
 export default async function OrderView({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const order = await prisma.order.findUnique({
-    where: { id: Number.parseInt(params.id) },
+    where: { id: Number.parseInt(id) },
     include: {
       user: {
         select: { name: true, email: true },
