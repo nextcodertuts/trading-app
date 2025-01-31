@@ -9,6 +9,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
+  LineStyle,
 } from "lightweight-charts";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,7 @@ export function TradingViewChart({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const orderLinesRef = useRef<{ [key: string]: ISeriesApi<"Line"> }>({});
   const [loading, setLoading] = useState(true);
   const [timeFrame, setTimeFrame] = useState<string>("1m");
   const [showSMA, setShowSMA] = useState(false);
@@ -83,17 +85,55 @@ export function TradingViewChart({
     [smaPeriod, showSMA]
   );
 
+  // Function to create or update order lines
+  const updateOrderLines = useCallback(() => {
+    if (!chartRef.current || !orders.length) return;
+
+    // Remove expired order lines
+    Object.entries(orderLinesRef.current).forEach(([orderId, series]) => {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order || Date.now() / 1000 > order.expirationTime) {
+        chartRef.current.removeSeries(series);
+        delete orderLinesRef.current[orderId];
+      }
+    });
+
+    // Add or update active order lines
+    orders.forEach((order) => {
+      if (
+        order.symbolId === symbolId &&
+        Date.now() / 1000 <= order.expirationTime
+      ) {
+        if (!orderLinesRef.current[order.id]) {
+          const priceLine = chartRef.current.addLineSeries({
+            color: order.direction === "up" ? "#22c55e" : "#ef4444",
+            lineWidth: 2,
+            lineStyle: LineStyle.Solid,
+            title: `${order.direction.toUpperCase()} @ ${order.price.toFixed(
+              2
+            )}`,
+          });
+
+          // Set the horizontal line at the entry price
+          priceLine.setData([
+            {
+              time: Math.floor(order.timestamp) as UTCTimestamp,
+              value: order.price,
+            },
+            {
+              time: Math.floor(order.expirationTime) as UTCTimestamp,
+              value: order.price,
+            },
+          ]);
+
+          orderLinesRef.current[order.id] = priceLine;
+        }
+      }
+    });
+  }, [orders, symbolId]);
+
   useEffect(() => {
     if (!chartContainerRef.current || !symbolId) return;
-
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
-        });
-      }
-    };
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -124,6 +164,15 @@ export function TradingViewChart({
     fetchHistoricalData();
     setLoading(false);
 
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight,
+        });
+      }
+    };
+
     window.addEventListener("resize", handleResize);
 
     return () => {
@@ -149,7 +198,6 @@ export function TradingViewChart({
         Math.floor(currentTime / timeFrameSeconds) * timeFrameSeconds;
 
       if (currentCandleTime === lastCandleRef.current.time) {
-        // Update the current candle
         lastCandleRef.current.high = Math.max(
           lastCandleRef.current.high,
           symbolData.manipulatedPrice
@@ -160,45 +208,26 @@ export function TradingViewChart({
         );
         lastCandleRef.current.close = symbolData.manipulatedPrice;
       } else {
-        // Create a new candle
         const newCandle: Candle = {
           time: currentCandleTime as UTCTimestamp,
           open: lastCandleRef.current.close,
           high: symbolData.manipulatedPrice,
           low: symbolData.manipulatedPrice,
           close: symbolData.manipulatedPrice,
-          volume: 0, // We don't have real-time volume data
+          volume: 0,
         };
         seriesRef.current.update(newCandle);
         lastCandleRef.current = newCandle;
       }
 
       seriesRef.current.update(lastCandleRef.current);
-
-      // Update SMA
       updateSMA([...historicalData, lastCandleRef.current]);
+      updateOrderLines();
     };
 
-    const intervalId = setInterval(updateChart, 1000); // Update every second
-
+    const intervalId = setInterval(updateChart, 1000);
     return () => clearInterval(intervalId);
-  }, [symbolData, timeFrame, updateSMA, historicalData]);
-
-  useEffect(() => {
-    if (!chartRef.current || !seriesRef.current || !orders.length) return;
-
-    const markers = orders
-      .filter((order) => order.symbolId === symbolId)
-      .map((order) => ({
-        time: order.timestamp as UTCTimestamp,
-        position: order.direction === "up" ? "belowBar" : "aboveBar",
-        color: order.direction === "up" ? "#2196F3" : "#FF4136",
-        shape: "arrowUp",
-        text: `${order.direction.toUpperCase()} @ ${order.price.toFixed(2)}`,
-      }));
-
-    seriesRef.current.setMarkers(markers);
-  }, [orders, symbolId]);
+  }, [symbolData, timeFrame, updateSMA, historicalData, updateOrderLines]);
 
   const handleTimeFrameChange = (newTimeFrame: string) => {
     setTimeFrame(newTimeFrame);
@@ -227,8 +256,8 @@ export function TradingViewChart({
   }
 
   return (
-    <div className="w-full relative md:h-full h-[75vh] rounded-lg overflow-hidden border border-border p-1 flex flex-col">
-      <div className="flex items-start gap-2 overflow-x-auto h-12 absolute top-0 left-0 z-50">
+    <div className="w-full relative md:h-full h-[75vh] rounded-sm overflow-hidden border border-border p-1 flex flex-col">
+      <div className="flex items-start gap-2 overflow-x-auto h-12 md:static absolute top-0 p-1 left-0 z-50">
         <SymbolSelector symbols={symbols} currentSymbol={currentSymbol} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

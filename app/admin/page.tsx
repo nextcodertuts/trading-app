@@ -1,6 +1,20 @@
 import prisma from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, DollarSign, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { revalidatePath } from "next/cache";
+
+async function clearHistoricalData() {
+  "use server";
+
+  try {
+    await prisma.historicalPrice.deleteMany({});
+    revalidatePath("/admin");
+  } catch (error) {
+    console.error("Error clearing historical data:", error);
+    throw new Error("Failed to clear historical data");
+  }
+}
 
 export default async function Dashboard() {
   const usersCount = await prisma.user.count();
@@ -33,7 +47,19 @@ export default async function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <form action={clearHistoricalData}>
+          <Button
+            variant="destructive"
+            type="submit"
+            className="flex items-center gap-2"
+          >
+            Clear Historical Data
+          </Button>
+        </form>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <Card key={index}>
