@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 "use client";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,12 +14,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-
 import { QRCodeSVG } from "qrcode.react";
-
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { TransactionHistory } from "@/components/TransactionHistory";
+import { Copy } from "lucide-react"; // Import the Copy icon
 
 export default function DepositPage() {
   const [formData, setFormData] = useState({
@@ -78,7 +77,7 @@ export default function DepositPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "deposit",
-          amount: parseFloat(formData.amount),
+          amount: Number.parseFloat(formData.amount),
           utr,
           userUpiId: formData.upiId,
           userFullName: formData.fullName,
@@ -108,6 +107,25 @@ export default function DepositPage() {
         variant: "destructive",
       });
     }
+  };
+
+  const copyUpiId = () => {
+    navigator.clipboard
+      .writeText(adminUpiId)
+      .then(() => {
+        toast({
+          title: "Copied!",
+          description: "UPI ID copied to clipboard",
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+        toast({
+          title: "Error",
+          description: "Failed to copy UPI ID",
+          variant: "destructive",
+        });
+      });
   };
 
   return (
@@ -179,13 +197,23 @@ export default function DepositPage() {
           </DialogHeader>
           <div className="text-center space-y-4">
             <p className="text-gray-600">
-              Scan the QR code below or use the admin UPI ID to pay the deposit
+              Scan the QR code below or use the UPI ID to pay the deposit
               amount.
             </p>
             <QRCodeSVG value={upiQrCode} size={200} className="mx-auto" />
-            <p className="mt-2 text-sm">
-              <strong>Admin UPI ID:</strong> {adminUpiId}
-            </p>
+            <div className="mt-2 text-sm flex items-center justify-center space-x-2">
+              <strong>P2P UPI ID:</strong>
+              <span>{adminUpiId}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={copyUpiId}
+                className="h-6 w-6"
+                aria-label="Copy UPI ID"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
             <p className="mt-2 text-sm">
               <strong>Amount:</strong> ₹{formData.amount}
             </p>
