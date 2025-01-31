@@ -19,6 +19,7 @@ import { QRCodeSVG } from "qrcode.react";
 
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { TransactionHistory } from "@/components/TransactionHistory";
 
 export default function DepositPage() {
   const [formData, setFormData] = useState({
@@ -110,60 +111,65 @@ export default function DepositPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
-            Deposit Funds
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="mobile">Mobile Number</Label>
-            <Input
-              id="mobile"
-              name="mobile"
-              value={formData.mobile}
-              onChange={handleInputChange}
-              placeholder="Enter your mobile number"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              name="amount"
-              type="number"
-              value={formData.amount}
-              onChange={handleInputChange}
-              placeholder="Enter deposit amount"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="upiId">Your UPI ID</Label>
-            <Input
-              id="upiId"
-              name="upiId"
-              value={formData.upiId}
-              onChange={handleInputChange}
-              placeholder="Enter your UPI ID"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input
-              id="fullName"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              placeholder="Enter your full name"
-            />
-          </div>
-          <Button className="w-full" onClick={handleDepositClick}>
-            Deposit
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-2 p-2 min-h-screen">
+      <div className="md:col-span-1">
+        <Card className="w-full  ">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl font-bold">
+              Deposit Funds
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="mobile">Mobile Number</Label>
+              <Input
+                id="mobile"
+                name="mobile"
+                value={formData.mobile}
+                onChange={handleInputChange}
+                placeholder="Enter your mobile number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                name="amount"
+                type="number"
+                value={formData.amount}
+                onChange={handleInputChange}
+                placeholder="Enter deposit amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="upiId">Your UPI ID</Label>
+              <Input
+                id="upiId"
+                name="upiId"
+                value={formData.upiId}
+                onChange={handleInputChange}
+                placeholder="Enter your UPI ID"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                placeholder="Enter your full name"
+              />
+            </div>
+            <Button className="w-full" onClick={handleDepositClick}>
+              Deposit
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="md:col-span-2">
+        <TransactionHistory />
+      </div>
 
       {/* Dialog for UPI Payment */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

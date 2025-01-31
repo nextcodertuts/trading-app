@@ -7,21 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { updateProfile } from "./updateProfile";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 async function getUserProfile(userId: string) {
   return await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      orders: {
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: { symbol: true },
-      },
-      walletTransactions: {
-        take: 5,
-        orderBy: { createdAt: "desc" },
-      },
-    },
   });
 }
 
@@ -86,50 +79,27 @@ export default async function ProfilePage() {
                 ${profile.balance.toFixed(2)}
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">Recent Orders</h3>
-              <ul className="space-y-2">
-                {profile.orders.map((order) => (
-                  <li key={order.id} className="text-sm">
-                    <span className="font-medium">{order.symbol.name}</span> - $
-                    {order.amount} ({order.direction}) -
-                    <span
-                      className={
-                        order.outcome === "win"
-                          ? "text-green-500"
-                          : order.outcome === "loss"
-                          ? "text-red-500"
-                          : "text-yellow-500"
-                      }
-                    >
-                      {order.outcome || "Pending"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Recent Transactions</h3>
-              <ul className="space-y-2">
-                {profile.walletTransactions.map((transaction) => (
-                  <li key={transaction.id} className="text-sm">
-                    <span className="font-medium">{transaction.type}</span> - $
-                    {transaction.amount} -
-                    <span
-                      className={
-                        transaction.status === "approved"
-                          ? "text-green-500"
-                          : transaction.status === "rejected"
-                          ? "text-red-500"
-                          : "text-yellow-500"
-                      }
-                    >
-                      {transaction.status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <form action={updateProfile} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  type="text"
+                  id="name"
+                  name="name"
+                  defaultValue={profile.name || ""}
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  type="email"
+                  id="email"
+                  name="email"
+                  defaultValue={profile.email}
+                />
+              </div>
+              <Button type="submit">Update Profile</Button>
+            </form>
           </div>
         </CardContent>
       </Card>

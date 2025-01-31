@@ -25,7 +25,7 @@ export function TransactionHistory() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch("/api/transactions");
+      const response = await fetch("/api/wallet-transaction");
       const data = await response.json();
       setTransactions(data);
     } catch (error) {
