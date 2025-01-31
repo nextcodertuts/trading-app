@@ -4,6 +4,9 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
 import { Header } from "@/components/trading/Header";
+import { validateRequest } from "@/lib/auth";
+import { AppTheme } from "./AppTheme";
+import { redirect } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,25 +19,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trading Platform",
+  title: "Black Star",
   description: "Professional Trading Platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { user } = await validateRequest();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
-          <Header />
-          {children}
-          <Toaster />
-        </Providers>
+        <AppTheme>
+          <Providers>
+            <Header user={user} />
+            {children}
+            <Toaster />
+          </Providers>
+        </AppTheme>
       </body>
     </html>
   );
