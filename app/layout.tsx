@@ -6,7 +6,6 @@ import { Providers } from "./providers";
 import { Header } from "@/components/trading/Header";
 import { validateRequest } from "@/lib/auth";
 import { AppTheme } from "./AppTheme";
-import { redirect } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
