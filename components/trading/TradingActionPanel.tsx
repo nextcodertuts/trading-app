@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -15,39 +14,51 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
 
-const timeOptions = [
-  { value: "5", label: "5s" },
-  { value: "10", label: "10s" },
-  { value: "15", label: "15s" },
-  { value: "30", label: "30s" },
-  { value: "60", label: "1m" },
-  { value: "120", label: "2m" },
-  { value: "180", label: "3m" },
-  { value: "300", label: "5m" },
-];
-
-const predefinedAmounts = [10, 50, 100, 500, 1000];
-
-interface OrderRequest {
-  symbolId: number;
-  amount: number;
-  direction: "up" | "down";
-  duration: number;
+interface Symbol {
+  id: number;
+  name: string;
+  displayName: string;
+  payout: number;
+  minAmount: number;
+  maxAmount: number;
 }
 
-export function TradingActionPanel() {
+interface Props {
+  symbol: Symbol;
+}
+
+export function TradingActionPanel({ symbol }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const wsRef = useRef<WebSocket | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [tradeDetails, setTradeDetails] = useState({
-    amount: "10",
+    amount: symbol.minAmount.toString(),
     time: "60",
   });
 
+  useEffect(() => {
+    // Connect to Binance WebSocket for live price
+    wsRef.current = new WebSocket(
+      `wss://stream.binance.com:9443/ws/${symbol.name.toLowerCase()}@ticker`
+    );
+
+    wsRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setCurrentPrice(parseFloat(data.c)); // Current price
+    };
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [symbol.name]);
+
   const placeOrderMutation = useMutation({
-    mutationFn: async (orderData: OrderRequest) => {
+    mutationFn: async (orderData: any) => {
       const response = await fetch("/api/trades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,169 +72,111 @@ export function TradingActionPanel() {
 
       return response.json();
     },
-    onMutate: async (newOrder) => {
-      await queryClient.cancelQueries({ queryKey: ["orders"] });
-      const previousOrders = queryClient.getQueryData(["orders"]);
-
-      queryClient.setQueryData(["orders"], (old: any) => ({
-        ...old,
-        orders: [
-          ...(old?.orders || []),
-          {
-            id: Date.now().toString(),
-            ...newOrder,
-            status: "pending",
-            createdAt: new Date().toISOString(),
-          },
-        ],
-      }));
-
-      addOrder({
-        id: Date.now().toString(),
-        symbolId: newOrder.symbolId,
-        price: symbolData?.manipulatedPrice || 0,
-        direction: newOrder.direction,
-        timestamp: Math.floor(Date.now() / 1000),
-        expirationTime: Math.floor(Date.now() / 1000) + newOrder.duration,
-      });
-
-      return { previousOrders };
-    },
-    onError: (err, newOrder, context) => {
-      queryClient.setQueryData(["orders"], context?.previousOrders);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
-    },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Success",
         description: "Order placed successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setTradeDetails({ ...tradeDetails, [name]: value });
-  };
-
-  const handleTimeChange = (value: string) => {
-    setTradeDetails({ ...tradeDetails, time: value });
-  };
-
-  const handlePredefinedAmount = (amount: number) => {
-    setTradeDetails({ ...tradeDetails, amount: amount.toString() });
-  };
-
-  const placeOrder = (direction: "up" | "down") => {
-    if (!symbolData) {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description:
-          "No symbol selected. Please select a trading symbol first.",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const placeOrder = (direction: "up" | "down") => {
+    if (!currentPrice) {
+      toast({
+        title: "Error",
+        description: "Please wait for price data to load",
         variant: "destructive",
       });
       return;
     }
 
-    if (!tradeDetails.amount || Number(tradeDetails.amount) <= 0) {
+    const amount = Number(tradeDetails.amount);
+    if (amount < symbol.minAmount || amount > symbol.maxAmount) {
       toast({
         title: "Error",
-        description: "Please enter a valid amount.",
+        description: `Amount must be between ${symbol.minAmount} and ${symbol.maxAmount}`,
         variant: "destructive",
       });
       return;
     }
 
     placeOrderMutation.mutate({
-      symbolId: symbolData.id,
-      amount: Number(tradeDetails.amount),
+      symbolId: symbol.id,
+      amount,
       direction,
       duration: Number(tradeDetails.time),
     });
   };
 
   return (
-    <Card className="">
-      <CardContent className="space-y-2 p-2">
-        <div className="space-y-2">
-          <div className="hidden md:block space-x-1 items-center">
-            <label className="md:text-sm text-xs font-medium mb-1 block">
-              Quick Amount
-            </label>
-            <ScrollArea className="w-96 whitespace-nowrap">
-              <div className="flex w-max space-x-1 ">
-                {predefinedAmounts.map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePredefinedAmount(amount)}
-                    className="w-full "
-                  >
-                    ${amount}
-                  </Button>
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+    <Card>
+      <CardContent className="space-y-4 p-4">
+        <div className="text-center mb-4">
+          <div className="text-2xl font-bold">
+            {currentPrice ? `$${currentPrice.toFixed(2)}` : "Loading..."}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
-            <div>
-              <label className="md:text-sm text-xs font-medium block">
-                Custom Amount
-              </label>
-              <Input
-                name="amount"
-                type="number"
-                value={tradeDetails.amount}
-                onChange={handleInputChange}
-                placeholder="Enter trade amount"
-                className="w-full"
-              />
-            </div>
+          <div className="text-sm text-muted-foreground">
+            Payout: {symbol.payout}%
+          </div>
+        </div>
 
-            <div>
-              <label className="md:text-sm text-xs font-medium block">
-                Expiry Time
-              </label>
-              <Select
-                onValueChange={handleTimeChange}
-                value={tradeDetails.time}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div className="space-y-4">
+          <div>
+            <Input
+              type="number"
+              value={tradeDetails.amount}
+              onChange={(e) =>
+                setTradeDetails({ ...tradeDetails, amount: e.target.value })
+              }
+              min={symbol.minAmount}
+              max={symbol.maxAmount}
+              step="0.01"
+              placeholder="Amount"
+            />
+            <div className="text-xs text-muted-foreground mt-1">
+              Min: ${symbol.minAmount} - Max: ${symbol.maxAmount}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-4 mt-6">
+          <Select
+            value={tradeDetails.time}
+            onValueChange={(value) =>
+              setTradeDetails({ ...tradeDetails, time: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">30 seconds</SelectItem>
+              <SelectItem value="60">1 minute</SelectItem>
+              <SelectItem value="300">5 minutes</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => placeOrder("up")}
-              className="py-4 sm:py-6 text-base  font-semibold bg-green-500 hover:bg-green-600 text-white"
-              disabled={!symbolData || placeOrderMutation.isPending}
+              className="bg-green-500 hover:bg-green-600"
+              disabled={placeOrderMutation.isPending}
             >
-              <ArrowUp className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+              <ArrowUp className="mr-2" />
               Up
             </Button>
             <Button
               onClick={() => placeOrder("down")}
-              className="py-4 sm:py-6 text-base  font-semibold bg-red-500 hover:bg-red-600 text-white"
-              disabled={!symbolData || placeOrderMutation.isPending}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={placeOrderMutation.isPending}
             >
-              <ArrowDown className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+              <ArrowDown className="mr-2" />
               Down
             </Button>
           </div>
