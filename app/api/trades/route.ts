@@ -1,45 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { validateRequest } from "@/lib/auth";
-import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-
-export async function GET(request: Request) {
-  try {
-    const { user } = await validateRequest();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const openTrades = await prisma.order.findMany({
-      where: {
-        userId: user.id,
-        outcome: null,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    const closedTrades = await prisma.order.findMany({
-      where: {
-        userId: user.id,
-        outcome: { not: null },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 50, // Limit to last 50 closed trades
-    });
-
-    return NextResponse.json({ openTrades, closedTrades });
-  } catch (error) {
-    console.error("Error fetching trades:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch trades" },
-      { status: 500 }
-    );
-  }
-}
+import prisma from "@/lib/prisma";
+import { validateRequest } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -121,45 +82,55 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    // Schedule trade resolution
+    // Schedule trade resolution using WebSocket
     setTimeout(async () => {
       try {
-        const currentSymbol = await prisma.symbol.findUnique({
-          where: { id: symbolId },
-        });
+        const ws = new WebSocket(
+          `wss://stream.binance.com:9443/ws/${symbol.binanceSymbol.toLowerCase()}@ticker`
+        );
 
-        if (!currentSymbol) return;
+        ws.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          const exitPrice = parseFloat(data.c); // Live exit price
 
-        const isWin =
-          direction === "up"
-            ? currentSymbol.manipulatedPrice > order.manipulatedEntryPrice
-            : currentSymbol.manipulatedPrice < order.manipulatedEntryPrice;
+          const isWin =
+            direction === "up"
+              ? exitPrice > entryPrice
+              : exitPrice < entryPrice;
 
-        const profitLoss = isWin ? amount * (symbol.payout / 100) : -amount;
+          const profitLoss = isWin ? amount * (symbol.payout / 100) : -amount;
 
-        await prisma.$transaction([
-          // Update order
-          prisma.order.update({
-            where: { id: order.id },
-            data: {
-              exitPrice: currentSymbol.currentPrice,
-              manipulatedExitPrice: currentSymbol.manipulatedPrice,
-              outcome: isWin ? "win" : "loss",
-              profitLoss,
-            },
-          }),
-          // Update user balance if won
-          isWin
-            ? prisma.user.update({
-                where: { id: user.id },
-                data: {
-                  balance: {
-                    increment: amount + profitLoss,
+          await prisma.$transaction([
+            // Update order
+            prisma.order.update({
+              where: { id: order.id },
+              data: {
+                exitPrice,
+                manipulatedExitPrice: exitPrice,
+                outcome: isWin ? "win" : "loss",
+                profitLoss,
+              },
+            }),
+            // Update user balance if won
+            isWin
+              ? prisma.user.update({
+                  where: { id: user.id },
+                  data: {
+                    balance: {
+                      increment: amount + profitLoss,
+                    },
                   },
-                },
-              })
-            : prisma.user.update({ where: { id: user.id }, data: {} }),
-        ]);
+                })
+              : prisma.user.update({ where: { id: user.id }, data: {} }),
+          ]);
+
+          ws.close();
+        };
+
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          ws.close();
+        };
       } catch (error) {
         console.error("Error resolving trade:", error);
       }

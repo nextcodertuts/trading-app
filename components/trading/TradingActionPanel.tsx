@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// components/trading/TradingActionPanel.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -34,6 +35,7 @@ export function TradingActionPanel({ symbol }: Props) {
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [tradeDetails, setTradeDetails] = useState({
     amount: symbol.minAmount.toString(),
     time: "60",
@@ -59,6 +61,7 @@ export function TradingActionPanel({ symbol }: Props) {
 
   const placeOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
+      setIsPlacingOrder(true);
       const response = await fetch("/api/trades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,6 +81,7 @@ export function TradingActionPanel({ symbol }: Props) {
         description: "Order placed successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setIsPlacingOrder(false);
     },
     onError: (error: Error) => {
       toast({
@@ -85,6 +89,7 @@ export function TradingActionPanel({ symbol }: Props) {
         description: error.message,
         variant: "destructive",
       });
+      setIsPlacingOrder(false);
     },
   });
 
@@ -94,6 +99,14 @@ export function TradingActionPanel({ symbol }: Props) {
         title: "Error",
         description: "Please wait for price data to load",
         variant: "destructive",
+      });
+      return;
+    }
+
+    if (isPlacingOrder) {
+      toast({
+        title: "Info",
+        description: "Please wait for the current order to be placed",
       });
       return;
     }
@@ -167,7 +180,7 @@ export function TradingActionPanel({ symbol }: Props) {
             <Button
               onClick={() => placeOrder("up")}
               className="bg-green-500 hover:bg-green-600"
-              disabled={placeOrderMutation.isPending}
+              disabled={isPlacingOrder || placeOrderMutation.isPending}
             >
               <ArrowUp className="mr-2" />
               Up
@@ -175,7 +188,7 @@ export function TradingActionPanel({ symbol }: Props) {
             <Button
               onClick={() => placeOrder("down")}
               className="bg-red-500 hover:bg-red-600"
-              disabled={placeOrderMutation.isPending}
+              disabled={isPlacingOrder || placeOrderMutation.isPending}
             >
               <ArrowDown className="mr-2" />
               Down
