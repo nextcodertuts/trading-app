@@ -131,12 +131,9 @@ export function TradingActionPanel({ symbol }: Props) {
   };
 
   return (
-    <Card>
-      <CardContent className="space-y-4 pb-2 px-1">
+    <Card className="rounded-sm">
+      <CardContent className="space-y-4 p-2">
         <div className="space-y-1">
-          <div className="text-sm text-center text-muted-foreground py-1">
-            Payout: {symbol.payout}%
-          </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Input
@@ -154,22 +151,26 @@ export function TradingActionPanel({ symbol }: Props) {
                 Min: ${symbol.minAmount} - Max: ${symbol.maxAmount}
               </div>
             </div>
-
-            <Select
-              value={tradeDetails.time}
-              onValueChange={(value) =>
-                setTradeDetails({ ...tradeDetails, time: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select time" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30">30 seconds</SelectItem>
-                <SelectItem value="60">1 minute</SelectItem>
-                <SelectItem value="300">5 minutes</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <Select
+                value={tradeDetails.time}
+                onValueChange={(value) =>
+                  setTradeDetails({ ...tradeDetails, time: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 seconds</SelectItem>
+                  <SelectItem value="60">1 minute</SelectItem>
+                  <SelectItem value="300">5 minutes</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground py-1">
+                Payout: {symbol.payout}%
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

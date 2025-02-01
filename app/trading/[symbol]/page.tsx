@@ -37,10 +37,10 @@ export default async function TradingPage({
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)] bg-background">
-      <main className="flex-1 p-2 overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 h-full md:h-[98%] relative">
+      <main className="flex-1 p-2">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 h-full  relative">
           {/* Chart Section */}
-          <section className="lg:col-span-10 relative h-[78%] md:h-full flex flex-col">
+          <section className="lg:col-span-10 relative md:h-full flex flex-col">
             <div className="flex-grow">
               <Suspense fallback={<div>Loading chart...</div>}>
                 <TradingViewChart
@@ -52,7 +52,7 @@ export default async function TradingPage({
           </section>
 
           {/* Trading Panel Section */}
-          <section className="lg:col-span-2 h-[22%] md:h-full">
+          <section className="lg:col-span-2 md:h-full">
             <div className="h-full space-y-4 md:flex md:flex-col md:justify-between">
               <Suspense fallback={<div>Loading trading panel...</div>}>
                 <TradingActionPanel symbol={currentSymbol} />

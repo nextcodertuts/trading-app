@@ -182,12 +182,12 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
 
   return (
     <div className="w-full relative md:h-full h-[75vh] rounded-sm overflow-hidden border border-border p-1 flex flex-col">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-1 mb-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
+            <Button variant="outline" className="px-1">
               {currentSymbol.displayName}
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className=" h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -204,9 +204,9 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
+            <Button variant="outline" className="px-1">
               {timeFrame}
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
