@@ -39,7 +39,7 @@ export function TradeHistory() {
       const data = await response.json();
       return data.orders;
     },
-    refetchInterval: 1000,
+    refetchInterval: 5000,
   });
 
   const { data: historicalTrades } = useQuery({

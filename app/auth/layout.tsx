@@ -11,7 +11,7 @@ export default async function Layout({
   if (user?.role === "ADMIN") {
     redirect("/admin");
   } else if (user) {
-    redirect("/trading/1");
+    redirect("/trading/BTCUSDT");
   }
 
   return <>{children}</>;

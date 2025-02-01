@@ -50,7 +50,7 @@ export default function LoginPage() {
         toast.error(result.error);
       } else if (result?.success) {
         toast.success("Login successful! Redirecting...");
-        router.push("/trading/1");
+        router.push("/trading/BTCUSDT");
       }
     } catch (error) {
       toast.error("Something went wrong");
