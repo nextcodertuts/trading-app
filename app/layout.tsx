@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
 import { Header } from "@/components/trading/Header";
 import { validateRequest } from "@/lib/auth";
-import { AppTheme } from "./AppTheme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,13 +33,11 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AppTheme>
-          <Providers>
-            <Header user={user} />
-            {children}
-            <Toaster />
-          </Providers>
-        </AppTheme>
+        <Providers>
+          <Header user={user} />
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );

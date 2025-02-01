@@ -6,8 +6,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useSymbol } from "@/lib/symbol-context";
-import { useOrder } from "@/lib/order-context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Select,
@@ -42,8 +40,6 @@ interface OrderRequest {
 
 export function TradingActionPanel() {
   const { toast } = useToast();
-  const { symbolData } = useSymbol();
-  const { addOrder } = useOrder();
   const queryClient = useQueryClient();
   const [tradeDetails, setTradeDetails] = useState({
     amount: "10",
