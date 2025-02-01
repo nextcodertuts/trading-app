@@ -102,7 +102,7 @@ export function TradingActionPanel({ symbol }: Props) {
     <Card>
       <CardContent className="space-y-4 pb-2 px-1">
         <div className="space-y-1">
-          <div className="text-sm text-center text-muted-foreground">
+          <div className="text-sm text-center text-muted-foreground py-1">
             Payout: {symbol.payout}%
           </div>
           <div className="grid grid-cols-2 gap-2">

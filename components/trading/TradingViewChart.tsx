@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
@@ -9,6 +11,7 @@ import {
   ColorType,
   type IChartApi,
   type ISeriesApi,
+  LineStyle,
 } from "lightweight-charts";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +22,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { useBinanceWebSocket } from "@/lib/hooks/useBinanceWebSocket";
+import { useQuery } from "@tanstack/react-query";
 
 interface Symbol {
   id: number;
   name: string;
   displayName: string;
   payout: number;
+}
+
+interface Order {
+  id: number;
+  entryPrice: number;
+  direction: "up" | "down";
+  expiresAt: string;
 }
 
 interface Props {
@@ -36,10 +47,23 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const orderLinesRef = useRef(new Map());
   const router = useRouter();
   const [timeFrame, setTimeFrame] = useState("1m");
 
   const priceData = useBinanceWebSocket(currentSymbol.name, timeFrame);
+
+  // Fetch active orders
+  const { data: activeOrders } = useQuery({
+    queryKey: ["orders", "open"],
+    queryFn: async () => {
+      const response = await fetch("/api/orders?status=open");
+      if (!response.ok) throw new Error("Failed to fetch open orders");
+      const data = await response.json();
+      return data.orders;
+    },
+    refetchInterval: 1000,
+  });
 
   // Initialize chart
   useEffect(() => {
@@ -75,6 +99,13 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      // Clean up order lines before removing the chart
+      orderLinesRef.current.forEach((line) => {
+        if (candlestickSeriesRef.current) {
+          candlestickSeriesRef.current.removePriceLine(line);
+        }
+      });
+      orderLinesRef.current.clear();
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
@@ -86,6 +117,34 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
       candlestickSeriesRef.current.update(priceData.klineData);
     }
   }, [priceData]);
+
+  // Manage order lines
+  useEffect(() => {
+    if (!candlestickSeriesRef.current || !activeOrders) return;
+
+    // Remove expired lines
+    orderLinesRef.current.forEach((line, orderId) => {
+      if (!activeOrders.find((order) => order.id === orderId)) {
+        candlestickSeriesRef.current.removePriceLine(line);
+        orderLinesRef.current.delete(orderId);
+      }
+    });
+
+    // Add or update lines for active orders
+    activeOrders.forEach((order) => {
+      if (!orderLinesRef.current.has(order.id)) {
+        const line = candlestickSeriesRef.current.createPriceLine({
+          price: order.entryPrice,
+          color: order.direction === "up" ? "#22c55e" : "#ef4444",
+          lineWidth: 2,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: `${order.direction.toUpperCase()} @ ${order.entryPrice}`,
+        });
+        orderLinesRef.current.set(order.id, line);
+      }
+    });
+  }, [activeOrders]);
 
   // Fetch historical data when symbol or timeframe changes
   useEffect(() => {
