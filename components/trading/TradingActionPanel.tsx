@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -38,6 +38,16 @@ export function TradingActionPanel({ symbol }: Props) {
     time: "60",
   });
 
+  // Fetch user's balance
+  const { data: balanceData } = useQuery({
+    queryKey: ["balance"],
+    queryFn: async () => {
+      const response = await fetch("/api/balance");
+      if (!response.ok) throw new Error("Failed to fetch balance");
+      return response.json();
+    },
+  });
+
   const placeOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
       const response = await fetch("/api/trades", {
@@ -59,6 +69,7 @@ export function TradingActionPanel({ symbol }: Props) {
         description: "Order placed successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["balance"] });
     },
     onError: (error: Error) => {
       toast({
@@ -80,6 +91,27 @@ export function TradingActionPanel({ symbol }: Props) {
     }
 
     const amount = Number(tradeDetails.amount);
+
+    // Check if user has sufficient balance
+    if (!balanceData?.balance || balanceData.balance < amount) {
+      toast({
+        title: "Error",
+        description: "Insufficient balance",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check minimum amount is at least $1
+    if (amount < 1) {
+      toast({
+        title: "Error",
+        description: "Minimum trade amount is $1",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (amount < symbol.minAmount || amount > symbol.maxAmount) {
       toast({
         title: "Error",
