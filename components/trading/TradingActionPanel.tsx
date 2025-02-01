@@ -112,6 +112,7 @@ export function TradingActionPanel({ symbol }: Props) {
       symbolId: symbol.id,
       amount,
       direction,
+      entryPrice: currentPrice,
       duration: Number(tradeDetails.time),
     });
   };

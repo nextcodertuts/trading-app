@@ -48,7 +48,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { symbolId, amount, direction, duration } = await request.json();
+    const { symbolId, amount, direction, entryPrice, duration } =
+      await request.json();
 
     // Validate inputs
     if (!symbolId || !amount || !direction || !duration) {
@@ -102,8 +103,8 @@ export async function POST(request: Request) {
           symbolId,
           amount,
           direction,
-          entryPrice: symbol.currentPrice,
-          manipulatedEntryPrice: symbol.manipulatedPrice,
+          entryPrice,
+          manipulatedEntryPrice: entryPrice,
           duration,
           expiresAt,
           payout: symbol.payout,
