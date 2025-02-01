@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-//@ts-nocheck
+// @ts-nocheck
 "use client";
-
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { useBinanceWebSocket } from "@/lib/hooks/useBinanceWebSocket";
 
 interface Symbol {
   id: number;
@@ -36,9 +36,10 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const router = useRouter();
   const [timeFrame, setTimeFrame] = useState("1m");
+
+  const priceData = useBinanceWebSocket(currentSymbol.name, timeFrame);
 
   // Initialize chart
   useEffect(() => {
@@ -79,7 +80,14 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
     };
   }, []);
 
-  // Fetch historical data and setup WebSocket when symbol or timeframe changes
+  // Update chart with new price data
+  useEffect(() => {
+    if (priceData?.klineData && candlestickSeriesRef.current) {
+      candlestickSeriesRef.current.update(priceData.klineData);
+    }
+  }, [priceData]);
+
+  // Fetch historical data when symbol or timeframe changes
   useEffect(() => {
     const fetchHistoricalData = async () => {
       try {
@@ -104,45 +112,7 @@ export function TradingViewChart({ currentSymbol, symbols }: Props) {
       }
     };
 
-    // Setup WebSocket connection
-    const setupWebSocket = () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      wsRef.current = new WebSocket(
-        `wss://stream.binance.com:9443/ws/${currentSymbol.name.toLowerCase()}@kline_${timeFrame}`
-      );
-
-      wsRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.k) {
-          const kline = data.k;
-          if (candlestickSeriesRef.current) {
-            candlestickSeriesRef.current.update({
-              time: kline.t / 1000,
-              open: parseFloat(kline.o),
-              high: parseFloat(kline.h),
-              low: parseFloat(kline.l),
-              close: parseFloat(kline.c),
-            });
-          }
-        }
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-    };
-
     fetchHistoricalData();
-    setupWebSocket();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
   }, [currentSymbol.name, timeFrame]);
 
   const handleSymbolChange = (symbolName: string) => {
