@@ -56,7 +56,7 @@ export default function DepositPage() {
     }
 
     // Generate UPI QR Code using upi.me format
-    const upiString = `upi://pay?pa=${adminUpiId}&pn=Admin&am=${formData.amount}&cu=INR`;
+    const upiString = `upi://pay?pa=${adminUpiId}&pn=Blockstar&am=${formData.amount}&cu=INR`;
     setUpiQrCode(upiString);
     setIsDialogOpen(true);
   };
@@ -187,6 +187,7 @@ export default function DepositPage() {
       </div>
       <div className="md:col-span-2">
         <TransactionHistory />
+        {/* <RealTimePrice /> */}
       </div>
 
       {/* Dialog for UPI Payment */}
