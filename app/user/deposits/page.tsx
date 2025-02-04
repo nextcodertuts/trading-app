@@ -33,7 +33,7 @@ export default function DepositPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const adminUpiId = "8927203711@okbizaxis"; // Replace with your admin UPI ID
+  const adminUpiId = "gpay-11256761617@okbizaxis"; // Replace with your admin UPI ID
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
