@@ -30,6 +30,7 @@ export default function DepositPage() {
   const [upiQrCode, setUpiQrCode] = useState("");
   const [utr, setUtr] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bonusPercentage, setBonusPercentage] = useState(0); // Added bonusPercentage state
   const { toast } = useToast();
   const router = useRouter();
 
@@ -38,6 +39,11 @@ export default function DepositPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleBonusSelection = (amount: number, bonus: number) => {
+    setFormData({ ...formData, amount: amount.toString() });
+    setBonusPercentage(bonus);
   };
 
   const handleDepositClick = () => {
@@ -71,13 +77,20 @@ export default function DepositPage() {
       return;
     }
 
+    const baseAmount = Number.parseFloat(formData.amount);
+    const bonusAmount = baseAmount * (bonusPercentage / 100);
+    const totalAmount = baseAmount + bonusAmount;
+
     try {
       const response = await fetch("/api/wallet-transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "deposit",
-          amount: Number.parseFloat(formData.amount),
+          amount: totalAmount,
+          baseAmount: baseAmount,
+          bonusAmount: bonusAmount,
+          bonusPercentage: bonusPercentage,
           utr,
           userUpiId: formData.upiId,
           userFullName: formData.fullName,
@@ -158,6 +171,7 @@ export default function DepositPage() {
                 onChange={handleInputChange}
                 placeholder="Enter deposit amount"
               />
+              <p className="text-xs text-secondary">min amount ₹1000</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="upiId">Your UPI ID</Label>
@@ -178,6 +192,25 @@ export default function DepositPage() {
                 onChange={handleInputChange}
                 placeholder="Enter your full name"
               />
+            </div>
+            <div className="space-y-2">
+              {" "}
+              {/* Added bonus selection buttons */}
+              <Label>Quick Select (with bonus)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={() => handleBonusSelection(2000, 10)}>
+                  2000 (+10%)
+                </Button>
+                <Button onClick={() => handleBonusSelection(3000, 20)}>
+                  3000 (+20%)
+                </Button>
+                <Button onClick={() => handleBonusSelection(5000, 30)}>
+                  5000 (+30%)
+                </Button>
+                <Button onClick={() => handleBonusSelection(10000, 40)}>
+                  10000 (+40%)
+                </Button>
+              </div>
             </div>
             <Button className="w-full" onClick={handleDepositClick}>
               Deposit
@@ -217,6 +250,11 @@ export default function DepositPage() {
             </div>
             <p className="mt-2 text-sm">
               <strong>Amount:</strong> ₹{formData.amount}
+              {bonusPercentage > 0 && (
+                <span className="text-green-600 ml-2">
+                  (+ {bonusPercentage}% bonus)
+                </span>
+              )}
             </p>
             <div className="space-y-2">
               <Label htmlFor="utr">UTR (Transaction Reference)</Label>

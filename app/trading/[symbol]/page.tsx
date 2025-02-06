@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { TradingViewChart } from "@/components/trading/TradingViewChart";
 import { TradingActionPanel } from "@/components/trading/TradingActionPanel";
 import { TradeHistory } from "@/components/trading/TradeHistory";
+import BottomDrawer from "@/components/trading/BottomDrawer";
 
 export default async function TradingPage({
   params,
@@ -48,6 +49,9 @@ export default async function TradingPage({
                   symbols={symbols}
                 />
               </Suspense>
+            </div>
+            <div className="absolute bottom-14 left-1 z-50">
+              <BottomDrawer />
             </div>
           </section>
 
