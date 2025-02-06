@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
@@ -10,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, LogOut, Sun, Moon, Laptop } from "lucide-react";
+import { MoreVertical, LogOut, Sun, Moon, Laptop, Users } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { Balance } from "./Balance";
 import { useTheme } from "next-themes";
@@ -22,6 +23,7 @@ export function Header({ user }) {
     { name: "Chart", href: "/trading/1" },
     { name: "Deposit", href: "/user/deposits" },
     { name: "Withdraw", href: "/user/withdraw" },
+    { name: "Referrals", href: "/user/referral" },
     { name: "Profile", href: "/user/profile" },
   ];
 

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { login } from "./action";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -28,6 +28,8 @@ const schema = z.object({
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo");
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -41,7 +43,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const formData = new FormData();
-      formData.append("email", values.email);
+      formData.append("email", values.email.toLowerCase());
       formData.append("password", values.password);
 
       const result = await login(formData);
@@ -50,7 +52,8 @@ export default function LoginPage() {
         toast.error(result.error);
       } else if (result?.success) {
         toast.success("Login successful! Redirecting...");
-        router.push("/trading/BTCUSDT");
+        router.push(redirectTo || "/trading/BTCUSDT");
+        router.refresh();
       }
     } catch (error) {
       toast.error("Something went wrong");
@@ -82,6 +85,7 @@ export default function LoginPage() {
                         {...field}
                         type="email"
                         placeholder="Enter your email"
+                        autoComplete="email"
                       />
                     </FormControl>
                     <FormMessage />
@@ -99,6 +103,7 @@ export default function LoginPage() {
                         {...field}
                         type="password"
                         placeholder="Enter your password"
+                        autoComplete="current-password"
                       />
                     </FormControl>
                     <FormMessage />

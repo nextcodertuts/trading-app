@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verify } from "@node-rs/argon2";
@@ -26,19 +25,14 @@ export async function login(formData: FormData) {
 
   try {
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
     });
 
     if (!existingUser) {
       return { error: "Invalid email or password" };
     }
 
-    const validPassword = await verify(existingUser.hashedPassword, password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    const validPassword = await verify(existingUser.hashedPassword, password);
 
     if (!validPassword) {
       return { error: "Invalid email or password" };

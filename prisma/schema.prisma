@@ -14,12 +14,20 @@ model User {
   name               String?
   role               Role                @default(TRADER)
   balance            Float               @default(0)
+  referralCode       String              @unique @default(cuid())
+  referredBy         String?
+  referrer          User?               @relation("UserReferrals", fields: [referredBy], references: [id])
+  referrals         User[]              @relation("UserReferrals")
+  totalReferralEarnings Float           @default(0)
   orders             Order[]
   walletTransactions WalletTransaction[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   sessions           Session[]
   adminLogs          AdminLog[]
+  referralBonuses    ReferralBonus[]
+
+  @@index([referralCode])
 }
 
 model Session {
@@ -85,8 +93,6 @@ model Symbol {
   orders             Order[]
 }
 
-
-
 model HistoricalPrice {
   id        Int      @id @default(autoincrement())
   symbolId  Int
@@ -109,6 +115,18 @@ model AdminLog {
   action      String
   details     String?
   createdAt   DateTime @default(now())
+}
+
+model ReferralBonus {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Float
+  fromUserId  String
+  type        String   // "signup", "deposit", "trade"
+  status      String   // "pending", "paid"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum Role {

@@ -8,9 +8,11 @@ const adapter = new PrismaAdapter(prisma.session, prisma.user);
 
 export const lucia = new Lucia(adapter, {
   sessionCookie: {
-    expires: false,
+    // This sets the cookie attributes
     attributes: {
+      // Set to `true` when using HTTPS
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
     },
   },
   getUserAttributes: (attributes) => {
@@ -20,25 +22,10 @@ export const lucia = new Lucia(adapter, {
       name: attributes.name,
       avatarUrl: attributes.avatarUrl,
       role: attributes.role,
+      referralCode: attributes.referralCode,
     };
   },
 });
-
-declare module "lucia" {
-  interface Register {
-    Lucia: typeof lucia;
-    DatabaseUserAttributes: DatabaseUserAttributes;
-  }
-}
-
-interface DatabaseUserAttributes {
-  id: string;
-  email: string;
-  hashedPassword: string;
-  name: string | null;
-  avatarUrl: string | null;
-  role: string;
-}
 
 export const validateRequest = cache(
   async (): Promise<
@@ -71,7 +58,26 @@ export const validateRequest = cache(
           sessionCookie.attributes
         );
       }
-    } catch {}
+    } catch (e) {
+      console.error("Session validation error:", e);
+    }
     return result;
   }
 );
+
+declare module "lucia" {
+  interface Register {
+    Lucia: typeof lucia;
+    DatabaseUserAttributes: DatabaseUserAttributes;
+  }
+}
+
+interface DatabaseUserAttributes {
+  id: string;
+  email: string;
+  hashedPassword: string;
+  name: string | null;
+  avatarUrl: string | null;
+  role: string;
+  referralCode: string;
+}

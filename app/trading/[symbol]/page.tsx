@@ -50,7 +50,7 @@ export default async function TradingPage({
                 />
               </Suspense>
             </div>
-            <div className="absolute bottom-14 left-1 z-50">
+            <div className="absolute md:hidden bottom-14 left-1 z-50">
               <BottomDrawer />
             </div>
           </section>
