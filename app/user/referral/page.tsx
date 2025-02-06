@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { Copy, Users, DollarSign, Gift } from "lucide-react";
+import { useSession } from "../SessionProvider";
 
 interface ReferralStats {
   totalReferrals: number;
@@ -38,7 +40,7 @@ export default function ReferralPage() {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [referralLink, setReferralLink] = useState("");
   const { toast } = useToast();
-
+  const { user } = useSession();
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -56,8 +58,7 @@ export default function ReferralPage() {
   }, []);
 
   useEffect(() => {
-    // Get the current user's referral code from localStorage or API
-    const referralCode = "YOUR_REFERRAL_CODE"; // Replace with actual code
+    const referralCode = user.referralCode; // Replace with actual code
     const link = `${window.location.origin}/auth/register?ref=${referralCode}`;
     setReferralLink(link);
   }, []);
@@ -72,7 +73,7 @@ export default function ReferralPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold mb-8">Referral Program</h1>
+      <h1 className="text-3xl font-bold mb-8">Referral Program 🎁</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>

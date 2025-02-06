@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { register } from "./action";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
 const schema = z
@@ -27,6 +27,7 @@ const schema = z
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
+    referralCode: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -38,6 +39,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -46,8 +48,16 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      referralCode: "",
     },
   });
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      form.setValue("referralCode", ref);
+    }
+  }, [searchParams, form]);
 
   async function onSubmit(values: z.infer<typeof schema>) {
     try {
@@ -57,6 +67,7 @@ export default function RegisterPage() {
       formData.append("email", values.email);
       formData.append("password", values.password);
       formData.append("confirmPassword", values.confirmPassword);
+      formData.append("referralCode", values.referralCode || "");
 
       const result = await register(formData);
 
@@ -180,6 +191,23 @@ export default function RegisterPage() {
                           )}
                         </Button>
                       </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="referralCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Referral Code (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="text"
+                        placeholder="Enter referral code"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

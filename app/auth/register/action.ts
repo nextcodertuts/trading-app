@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { z } from "zod";
@@ -5,6 +6,7 @@ import { lucia } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { hash } from "@node-rs/argon2";
+import crypto from "crypto";
 
 const registerSchema = z
   .object({
@@ -14,7 +16,7 @@ const registerSchema = z
     confirmPassword: z.string(),
     referralCode: z.string().optional(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((data: any) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
   });
@@ -36,39 +38,38 @@ export async function register(formData: FormData) {
 
   try {
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
     });
 
     if (existingUser) {
       return { error: "Email already registered" };
     }
 
-    let referrerId = null;
+    let referrer = null;
     if (referralCode) {
-      const referrer = await prisma.user.findFirst({
+      referrer = await prisma.user.findUnique({
         where: { referralCode },
       });
-      if (referrer) {
-        referrerId = referrer.id;
-      }
     }
 
     const hashedPassword = await hash(password);
     const user = await prisma.user.create({
       data: {
         name,
-        email: email.toLowerCase(),
+        email,
         hashedPassword,
-        referredBy: referrerId,
+        referralCode: crypto.randomUUID(), // Generate a unique referral code
+        referredBy: referrer ? referrer.id : null,
       },
     });
 
-    if (referrerId) {
+    if (referrer) {
+      // Create a referral bonus for the referrer
       await prisma.referralBonus.create({
         data: {
-          userId: referrerId,
+          userId: referrer.id,
+          amount: 10, // You can adjust this amount as needed
           fromUserId: user.id,
-          amount: 0,
           type: "signup",
           status: "pending",
         },
@@ -77,7 +78,6 @@ export async function register(formData: FormData) {
 
     const session = await lucia.createSession(user.id, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
-
     (await cookies()).set(
       sessionCookie.name,
       sessionCookie.value,
